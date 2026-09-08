@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Splitter — split by file size</title>
+<!--
+  ===================================================================
+  PDF Splitter  ·  single-file browser tool
+  File: PDF_Splitter_v1.0_2026-09-08.html
+  Created by Ram Lakhan Meena, INSPECTOR CBIC — 2026-09-08
+
+  VERSION LOG (newest first)
+  v1.0  2026-09-08  First build. Open the file in any browser, pick a
+        PDF, and the tool measures the true output size of every page.
+        Suggests page ranges for a target size (same size for all
+        parts / a different size per part / fixed number of parts),
+        lets you overwrite the ranges by hand, then splits and
+        downloads (individually or as one ZIP).
+        Every size displayed is measured, never estimated: each
+        candidate part is written out in memory before its size is
+        reported. Estimates are used only to speed up the search.
+        Nothing is uploaded anywhere - all work happens in the browser.
+
+  Libraries: pdf-lib 1.17.1, JSZip 3.10.1 (both from cdnjs).
+  ===================================================================
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --paper:#EEF1F3;
+    --panel:#FFFFFF;
+    --ink:#12202B;
+    --muted:#5B6C79;
+    --line:#D3DCE2;
+    --accent:#14646D;
+    --accent-2:#4E9AA0;
+    --accent-soft:#E0EDEE;
+    --warn:#96500A;
+    --warn-soft:#FBF0E1;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px; margin:0 auto; padding:32px 20px 72px}
+
+  header.masthead{
+    border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:28px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  h1{font-size:29px; line-height:1.15; margin:0; letter-spacing:-0.02em; font-weight:650}
+  .masthead p{margin:6px 0 0; color:var(--muted); font-size:14.5px; max-width:56ch}
+  .stamp{font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; text-align:right; line-height:1.5}
+
+  section.step{
+    background:var(--panel); border:1px solid var(--line); border-radius:5px;
+    padding:20px 22px; margin-bottom:18px; position:relative;
+  }
+  section.step[data-locked="true"]{opacity:.45; pointer-events:none}
+  .step-head{display:flex; align-items:baseline; gap:12px; margin-bottom:6px}
+  .step-num{
+    font-family:var(--mono); font-size:13px; color:var(--accent);
+    border:1px solid var(--accent-2); border-radius:3px; padding:1px 7px; flex:none;
+  }
+  h2{font-size:19px; margin:0; font-weight:620; letter-spacing:-0.01em}
+  .hint{color:var(--muted); font-size:14px; margin:2px 0 16px}
+  .hint code{font-family:var(--mono); font-size:13px; background:var(--paper); padding:1px 5px; border-radius:3px}
+
+  /* file picker */
+  .drop{
+    border:1.5px dashed var(--accent-2); border-radius:5px; background:var(--accent-soft);
+    padding:26px 18px; text-align:center; cursor:pointer; transition:background .15s, border-color .15s;
+  }
+  .drop:hover,.drop.over{background:#D2E6E8; border-color:var(--accent)}
+  .drop strong{display:block; font-size:16px}
+  .drop span{color:var(--muted); font-size:13.5px}
+  input[type=file]{display:none}
+
+  /* stats */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-top:18px}
+  .stat{background:var(--panel); padding:11px 13px}
+  .stat dt{font-size:12.5px; color:var(--muted); margin:0}
+  .stat dd{margin:2px 0 0; font-family:var(--mono); font-size:16px}
+
+  /* the page-weight strip: one bar per page, height = that page's size */
+  .strip-box{margin-top:20px}
+  .strip-title{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--muted); margin-bottom:6px}
+  .strip{
+    display:flex; align-items:flex-end; gap:1px; height:74px;
+    background:linear-gradient(var(--paper),var(--paper)) padding-box;
+    border:1px solid var(--line); border-radius:3px; padding:4px; overflow:hidden;
+  }
+  .bar{flex:1 1 0; min-width:1px; background:var(--accent-2); border-radius:1px 1px 0 0}
+  .bar.alt{background:var(--accent)}
+  .bar.cut{box-shadow:-1.5px 0 0 0 var(--warn)}
+  .ruler{display:flex; justify-content:space-between; font-family:var(--mono); font-size:11.5px; color:var(--muted); margin-top:4px}
+
+  /* progress */
+  .progress{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:3px; overflow:hidden; margin-top:16px}
+  .progress i{display:block; height:100%; width:0; background:var(--accent); transition:width .1s linear}
+  .progress-label{font-size:13px; color:var(--muted); margin-top:6px; font-family:var(--mono)}
+
+  /* controls */
+  .modes{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+  .modes label{
+    border:1px solid var(--line); border-radius:4px; padding:7px 12px; font-size:14px;
+    cursor:pointer; background:var(--panel);
+  }
+  .modes input{margin-right:7px; accent-color:var(--accent)}
+  .modes label:has(input:checked){border-color:var(--accent); background:var(--accent-soft)}
+  .field{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+  .field label{font-size:14px; color:var(--muted)}
+  input[type=text],input[type=number],textarea{
+    font-family:var(--mono); font-size:14.5px; color:var(--ink);
+    border:1px solid var(--line); border-radius:4px; padding:8px 10px; background:var(--panel);
+  }
+  input[type=number]{width:110px}
+  input[type=text]{width:230px}
+  textarea{width:100%; min-height:76px; resize:vertical; line-height:1.6}
+  input:focus-visible,textarea:focus-visible,button:focus-visible,.drop:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+  button{
+    font-family:var(--sans); font-size:14.5px; font-weight:550; cursor:pointer;
+    border:1px solid var(--accent); background:var(--accent); color:#fff;
+    border-radius:4px; padding:9px 16px;
+  }
+  button:hover{background:#0F565E}
+  button.ghost{background:var(--panel); color:var(--accent)}
+  button.ghost:hover{background:var(--accent-soft)}
+  button.small{padding:5px 11px; font-size:13px}
+  button:disabled{opacity:.5; cursor:not-allowed}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+  /* tables */
+  table{width:100%; border-collapse:collapse; margin-top:16px; font-size:14px}
+  th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line)}
+  th{font-size:12.5px; color:var(--muted); font-weight:550; border-bottom:1px solid var(--ink)}
+  td.num,th.num{text-align:right; font-family:var(--mono)}
+  td.range{font-family:var(--mono)}
+  tr.over td{background:var(--warn-soft)}
+
+  .note{font-size:13.5px; margin-top:14px; padding:10px 12px; border-radius:4px; background:var(--paper); color:var(--muted)}
+  .note.warn{background:var(--warn-soft); color:var(--warn)}
+  .note.bad{background:#FBE9E9; color:#8C2020}
+  .note b{font-weight:600}
+
+  .files{list-style:none; padding:0; margin:16px 0 0}
+  .files li{display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--line)}
+  .files .fname{font-family:var(--mono); font-size:13.5px; flex:1; word-break:break-all}
+  .files .fsize{font-family:var(--mono); font-size:13.5px; color:var(--muted)}
+
+  footer{margin-top:34px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:13px}
+  footer span{font-family:var(--mono)}
+
+  @media (max-width:620px){
+    .wrap{padding:22px 14px 56px}
+    h1{font-size:24px}
+    section.step{padding:16px 14px}
+    input[type=text]{width:100%}
+    table{font-size:13px}
+    th,td{padding:6px 6px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>PDF splitter</h1>
+      <p>Break one PDF into smaller PDFs that stay under a size limit. The file never leaves this device — everything runs in the browser.</p>
+    </div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-08 · v1.0</div>
+  </header>
+
+  <!-- STEP 1 -->
+  <section class="step" id="s1">
+    <div class="step-head"><span class="step-num">1</span><h2>Choose the PDF</h2></div>
+    <p class="hint">Each page is written out on its own to find its true size, so the numbers you see later are real, not guesses.</p>
+
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a PDF file">
+      <strong>Drop a PDF here, or click to browse</strong>
+      <span id="dropSub">One file at a time</span>
+    </div>
+    <input type="file" id="fileInput" accept="application/pdf,.pdf">
+
+    <div class="progress" id="progWrap" hidden><i id="progBar"></i></div>
+    <div class="progress-label" id="progLabel" hidden></div>
+
+    <div id="fileInfo" hidden>
+      <dl class="stats">
+        <div class="stat"><dt>File size</dt><dd id="stSize">—</dd></div>
+        <div class="stat"><dt>Pages</dt><dd id="stPages">—</dd></div>
+        <div class="stat"><dt>Average page</dt><dd id="stAvg">—</dd></div>
+        <div class="stat"><dt>Heaviest page</dt><dd id="stMax">—</dd></div>
+        <div class="stat"><dt>Lightest page</dt><dd id="stMin">—</dd></div>
+      </dl>
+
+      <div class="strip-box">
+        <div class="strip-title"><span>Weight of each page — tall bars are the heavy scanned pages</span><span id="stripParts"></span></div>
+        <div class="strip" id="strip"></div>
+        <div class="ruler"><span>page 1</span><span id="rulerEnd"></span></div>
+      </div>
+
+      <div class="note" id="guide"></div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step" id="s2" data-locked="true">
+    <div class="step-head"><span class="step-num">2</span><h2>Set the size you want</h2></div>
+    <p class="hint">Pick how the split should be worked out, then let the tool suggest page ranges.</p>
+
+    <div class="modes">
+      <label><input type="radio" name="mode" value="same" checked>Same size for every part</label>
+      <label><input type="radio" name="mode" value="list">A different size per part</label>
+      <label><input type="radio" name="mode" value="count">Fixed number of parts</label>
+    </div>
+
+    <div class="field" id="fSame">
+      <label for="inSame">Each part must stay under</label>
+      <input type="number" id="inSame" value="5" min="0.05" step="0.5"> <span class="hint" style="margin:0">MB</span>
+    </div>
+    <div class="field" id="fList" hidden>
+      <label for="inList">Sizes in MB, part by part</label>
+      <input type="text" id="inList" value="5, 10, 5">
+      <span class="hint" style="margin:0">the last size repeats if pages are left over</span>
+    </div>
+    <div class="field" id="fCount" hidden>
+      <label for="inCount">Number of parts, equal page count</label>
+      <input type="number" id="inCount" value="3" min="1" step="1">
+    </div>
+
+    <div class="btn-row"><button id="btnSuggest">Suggest ranges</button></div>
+    <div id="suggestOut"></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step" id="s3" data-locked="true">
+    <div class="step-head"><span class="step-num">3</span><h2>Adjust the pages yourself</h2></div>
+    <p class="hint">This box decides the split. Type any ranges you like — parts can be different sizes, a single page is just <code>7</code>, and <code>31-end</code> runs to the last page. Pages may be skipped or repeated; you only get a warning.</p>
+
+    <textarea id="rangeBox" spellcheck="false" aria-label="Page ranges">1-1</textarea>
+    <div class="btn-row" style="margin-top:12px">
+      <button id="btnCheck">Check sizes</button>
+      <button id="btnLoad" class="ghost">Reload suggested ranges</button>
+    </div>
+    <div id="checkOut"></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="step" id="s4" data-locked="true">
+    <div class="step-head"><span class="step-num">4</span><h2>Split and download</h2></div>
+    <p class="hint">Files are named <code>prefix_part01_p1-12.pdf</code> so the page range is visible in the file name.</p>
+
+    <div class="field">
+      <label for="inPrefix">File name prefix</label>
+      <input type="text" id="inPrefix" value="">
+    </div>
+    <div class="btn-row"><button id="btnSplit">Split now</button></div>
+    <div id="splitOut"></div>
+  </section>
+
+  <footer>
+    Runs offline once loaded. Built with pdf-lib and JSZip. <span>PDF_Splitter_v1.0_2026-09-08</span>
+  </footer>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   Split engine: measures real output sizes and plans page ranges.
+   Every size shown to the user is measured by actually writing the
+   part out in memory - nothing is guessed.
+   --------------------------------------------------------------- */
+function createEngine(PDFLib) {
+  const MB = 1024 * 1024;
+
+  function human(n) {
+    const u = ["B", "KB", "MB", "GB"];
+    let v = Number(n), i = 0;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return v.toFixed(v < 10 && i > 0 ? 2 : 1) + " " + u[i];
+  }
+
+  class Engine {
+    constructor(bytes, name, srcDoc) {
+      this.bytes = bytes;
+      this.name = name;
+      this.stem = name.replace(/\.pdf$/i, "");
+      this.doc = srcDoc;
+      this.n = srcDoc.getPageCount();
+      this.fileSize = bytes.length;
+      this.pageSizes = [];
+      this.overhead = 0;
+      this.rewriteSize = null;
+      this._cache = new Map();
+    }
+
+    static async load(bytes, name) {
+      const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+      return new Engine(bytes, name, doc);
+    }
+
+    async build(start, end) {
+      const out = await PDFLib.PDFDocument.create();
+      const idx = [];
+      for (let i = start; i < end; i++) idx.push(i);
+      const pages = await out.copyPages(this.doc, idx);
+      pages.forEach(p => out.addPage(p));
+      return await out.save({ useObjectStreams: true });
+    }
+
+    async actual(start, end) {
+      const key = start + ":" + end;
+      if (this._cache.has(key)) return this._cache.get(key);
+      const bytes = await this.build(start, end);
+      this._cache.set(key, bytes.length);
+      return bytes.length;
+    }
+
+    /* Measure every page on its own, then calibrate the fast estimator. */
+    async analyse(onProgress) {
+      this.pageSizes = [];
+      for (let i = 0; i < this.n; i++) {
+        this.pageSizes.push(await this.actual(i, i + 1));
+        if (onProgress) await onProgress(i + 1, this.n);
+      }
+      this.rewriteSize = await this.actual(0, this.n);
+      const sum = this.pageSizes.reduce((a, b) => a + b, 0);
+      this.overhead = this.n > 1 ? Math.max(0, (sum - this.rewriteSize) / (this.n - 1)) : 0;
+      return this;
+    }
+
+    estimate(start, end) {
+      const k = end - start;
+      if (k <= 0) return 0;
+      let s = 0;
+      for (let i = start; i < end; i++) s += this.pageSizes[i];
+      return Math.max(0, s - (k - 1) * this.overhead);
+    }
+
+    /* Greedy packing. targets = array of byte limits, used part by part;
+       the last value repeats if more parts are needed. */
+    async planBySize(targets, maxParts = 400) {
+      if (!targets.length) throw new Error("No target size given.");
+      const parts = [];
+      let cur = 0, idx = 0;
+      while (cur < this.n && parts.length < maxParts) {
+        const target = targets[Math.min(idx, targets.length - 1)];
+        let end = cur + 1;
+        while (end < this.n && this.estimate(cur, end + 1) <= target) end++;
+        let guard = 0;
+        while (end > cur + 1 && (await this.actual(cur, end)) > target && guard < 60) { end--; guard++; }
+        guard = 0;
+        while (end < this.n && (await this.actual(cur, end + 1)) <= target && guard < 60) { end++; guard++; }
+        const size = await this.actual(cur, end);
+        parts.push({ part: parts.length + 1, start: cur, end, size, target, ok: size <= target });
+        cur = end; idx++;
+      }
+      return parts;
+    }
+
+    async planByCount(nParts) {
+      nParts = Math.max(1, Math.min(Math.floor(nParts), this.n));
+      const base = Math.floor(this.n / nParts), extra = this.n % nParts;
+      const parts = [];
+      let cur = 0;
+      for (let i = 0; i < nParts; i++) {
+        const end = cur + base + (i < extra ? 1 : 0);
+        parts.push({ part: i + 1, start: cur, end, size: await this.actual(cur, end), target: null, ok: true });
+        cur = end;
+      }
+      return parts;
+    }
+
+    async sizeRanges(ranges) {
+      const parts = [];
+      for (let i = 0; i < ranges.length; i++) {
+        const [s, e] = ranges[i];
+        parts.push({ part: i + 1, start: s, end: e, size: await this.actual(s, e), target: null, ok: true });
+      }
+      return parts;
+    }
+
+    /* "1-12, 13-30, 31-end" -> [[0,12],[12,30],[30,n]]  (1-based, inclusive) */
+    parseRanges(text) {
+      const ranges = [], errors = [];
+      const chunks = String(text).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+      for (const c of chunks) {
+        const m = c.match(/^(\d+)\s*(?:[-–:]\s*(\d+|end|last)?)?$/i);
+        if (!m) { errors.push("Cannot read \u201c" + c + "\u201d"); continue; }
+        const a = parseInt(m[1], 10);
+        let b;
+        if (m[2] === undefined) b = /[-–:]/.test(c) ? this.n : a;
+        else if (/^(end|last)$/i.test(m[2])) b = this.n;
+        else b = parseInt(m[2], 10);
+        if (a < 1 || b > this.n || a > b) { errors.push("\u201c" + c + "\u201d is outside pages 1-" + this.n); continue; }
+        ranges.push([a - 1, b]);
+      }
+      return { ranges, errors };
+    }
+
+    coverage(ranges) {
+      const seen = new Set(), dup = new Set();
+      for (const [s, e] of ranges) {
+        for (let p = s; p < e; p++) { if (seen.has(p)) dup.add(p + 1); seen.add(p); }
+      }
+      const missing = [];
+      for (let p = 0; p < this.n; p++) if (!seen.has(p)) missing.push(p + 1);
+      return { missing, dup: [...dup].sort((x, y) => x - y) };
+    }
+
+    static rangesText(parts) {
+      return parts.map(p => (p.start + 1) + "-" + p.end).join(", ");
+    }
+
+    fileNameFor(i, s, e, prefix) {
+      const pad = String(i).padStart(2, "0");
+      return (prefix || this.stem) + "_part" + pad + "_p" + (s + 1) + "-" + e + ".pdf";
+    }
+  }
+
+  return { Engine, human, MB };
+}
+
+/* ---------------------------------------------------------------
+   Interface
+   --------------------------------------------------------------- */
+const { Engine, human, MB } = createEngine(PDFLib);
+const $ = id => document.getElementById(id);
+const state = { eng: null, suggested: "", ranges: [], parts: [], files: [] };
+
+/* ---- step locking ---- */
+function unlock(on){ ["s2","s3","s4"].forEach(id => $(id).dataset.locked = on ? "false" : "true"); }
+
+/* ---- file input ---- */
+const drop = $("drop"), fileInput = $("fileInput");
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+fileInput.addEventListener("change", e => { const f = e.target.files[0]; if (f) handleFile(f); });
+
+async function handleFile(file){
+  if (!/\.pdf$/i.test(file.name)) { showTopError("That is not a PDF file. Choose a file ending in .pdf."); return; }
+  $("dropSub").textContent = file.name;
+  $("fileInfo").hidden = true;
+  $("suggestOut").innerHTML = ""; $("checkOut").innerHTML = ""; $("splitOut").innerHTML = "";
+  unlock(false);
+  showProgress(0, 1, "Reading the file…");
+
+  let eng;
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    eng = await Engine.load(bytes, file.name);
+  } catch (err) {
+    hideProgress();
+    showTopError("This PDF could not be opened. If it is password protected, remove the password first. (" + err.message + ")");
+    return;
+  }
+
+  let last = 0;
+  await eng.analyse(async (i, n) => {
+    if (i - last >= 3 || i === n) { last = i; showProgress(i, n, "Measuring page " + i + " of " + n + "…"); await frame(); }
+  });
+  hideProgress();
+
+  state.eng = eng;
+  state.suggested = "1-" + eng.n;
+  $("rangeBox").value = state.suggested;
+  $("inPrefix").value = eng.stem;
+  renderFileInfo();
+  unlock(true);
+}
+
+const frame = () => new Promise(r => requestAnimationFrame(() => r()));
+function showProgress(i, n, label){
+  $("progWrap").hidden = false; $("progLabel").hidden = false;
+  $("progBar").style.width = (100 * i / n).toFixed(1) + "%";
+  $("progLabel").textContent = label;
+}
+function hideProgress(){ $("progWrap").hidden = true; $("progLabel").hidden = true; }
+function showTopError(msg){
+  $("fileInfo").hidden = false;
+  $("guide").className = "note bad";
+  $("guide").innerHTML = msg;
+}
+
+/* ---- file summary + page-weight strip ---- */
+function renderFileInfo(){
+  const e = state.eng;
+  $("fileInfo").hidden = false;
+  const sum = e.pageSizes.reduce((a,b)=>a+b,0);
+  let maxI = 0, minI = 0;
+  e.pageSizes.forEach((s,i)=>{ if (s > e.pageSizes[maxI]) maxI = i; if (s < e.pageSizes[minI]) minI = i; });
+  $("stSize").textContent  = human(e.fileSize);
+  $("stPages").textContent = e.n;
+  $("stAvg").textContent   = human(sum / e.n);
+  $("stMax").textContent   = "p" + (maxI+1) + " · " + human(e.pageSizes[maxI]);
+  $("stMin").textContent   = "p" + (minI+1) + " · " + human(e.pageSizes[minI]);
+  $("rulerEnd").textContent = "page " + e.n;
+
+  const guide = [];
+  [1,2,5,10,20].forEach(t => {
+    const k = Math.max(1, Math.ceil(e.rewriteSize / (t * MB)));
+    guide.push("<b>" + t + " MB</b> → about " + k + (k === 1 ? " part" : " parts"));
+  });
+  $("guide").className = "note";
+  $("guide").innerHTML = "Re-saved as one file this PDF is <b>" + human(e.rewriteSize) +
+    "</b>. Rough guide: " + guide.join(" · ") + ".";
+
+  drawStrip([]);
+}
+
+function drawStrip(parts){
+  const e = state.eng, strip = $("strip");
+  strip.innerHTML = "";
+  const max = e.pageSizes.reduce((a, b) => (b > a ? b : a), 1);
+  const cuts = new Set(parts.map(p => p.start));
+  const partOf = new Array(e.n).fill(-1);
+  parts.forEach((p, i) => { for (let x = p.start; x < p.end; x++) partOf[x] = i; });
+
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < e.n; i++){
+    const b = document.createElement("div");
+    b.className = "bar" + (partOf[i] >= 0 && partOf[i] % 2 === 1 ? " alt" : "") + (cuts.has(i) && i > 0 ? " cut" : "");
+    b.style.height = Math.max(6, 100 * e.pageSizes[i] / max) + "%";
+    b.title = "Page " + (i+1) + " — " + human(e.pageSizes[i]) + (partOf[i] >= 0 ? " · part " + (partOf[i]+1) : "");
+    frag.appendChild(b);
+  }
+  strip.appendChild(frag);
+  $("stripParts").textContent = parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") + ", cuts marked" : "";
+}
+
+/* ---- tables ---- */
+function partsTable(parts, withTarget){
+  const rows = parts.map(p => {
+    const over = withTarget && !p.ok;
+    return "<tr class='" + (over ? "over" : "") + "'>" +
+      "<td class='num'>" + p.part + "</td>" +
+      "<td class='range'>" + (p.start+1) + "–" + p.end + "</td>" +
+      "<td class='num'>" + (p.end - p.start) + "</td>" +
+      "<td class='num'>" + human(p.size) + "</td>" +
+      (withTarget ? "<td class='num'>" + (p.target ? human(p.target) : "—") + "</td>" +
+                    "<td>" + (over ? "over the limit" : "fits") + "</td>" : "") +
+      "</tr>";
+  }).join("");
+  return "<table><thead><tr><th class='num'>Part</th><th>Pages</th><th class='num'>Count</th><th class='num'>Size</th>" +
+    (withTarget ? "<th class='num'>Limit</th><th>Result</th>" : "") + "</tr></thead><tbody>" + rows + "</tbody></table>";
+}
+
+/* ---- step 2: suggest ---- */
+document.querySelectorAll("input[name=mode]").forEach(r => r.addEventListener("change", () => {
+  const m = document.querySelector("input[name=mode]:checked").value;
+  $("fSame").hidden = m !== "same"; $("fList").hidden = m !== "list"; $("fCount").hidden = m !== "count";
+}));
+
+$("btnSuggest").addEventListener("click", async () => {
+  const e = state.eng; if (!e) return;
+  const btn = $("btnSuggest"), out = $("suggestOut");
+  const mode = document.querySelector("input[name=mode]:checked").value;
+  let targets = null, parts;
+
+  if (mode === "same"){
+    const v = parseFloat($("inSame").value);
+    if (!(v > 0)) { out.innerHTML = "<div class='note bad'>Enter a size greater than zero.</div>"; return; }
+    targets = [Math.round(v * MB)];
+  } else if (mode === "list"){
+    const vals = $("inList").value.split(/[,;]+/).map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+    if (!vals.length || Math.min(...vals) <= 0){ out.innerHTML = "<div class='note bad'>Enter sizes in MB separated by commas, for example 5, 10, 2.5</div>"; return; }
+    targets = vals.map(v => Math.round(v * MB));
+  }
+
+  btn.disabled = true; btn.textContent = "Working…"; out.innerHTML = "";
+  try {
+    parts = targets ? await e.planBySize(targets) : await e.planByCount(parseInt($("inCount").value, 10) || 1);
+  } catch (err){
+    out.innerHTML = "<div class='note bad'>" + err.message + "</div>";
+    btn.disabled = false; btn.textContent = "Suggest ranges"; return;
+  }
+  btn.disabled = false; btn.textContent = "Suggest ranges";
+
+  state.suggested = Engine.rangesText(parts);
+  $("rangeBox").value = state.suggested;
+  state.ranges = parts.map(p => [p.start, p.end]);
+  state.parts = parts;
+  drawStrip(parts);
+
+  const over = parts.filter(p => !p.ok).map(p => p.part);
+  const total = parts.reduce((a,p) => a + p.size, 0);
+  out.innerHTML = partsTable(parts, !!targets) +
+    "<div class='note'>" + parts.length + " parts, " + human(total) + " in total. These ranges are now in step 3 — change them there if you want.</div>" +
+    (over.length ? "<div class='note warn'>Part " + over.join(", ") + " could not be brought under the limit: a single page is already bigger than the size you asked for. Reduce the scan quality of that page, or accept the larger part.</div>" : "");
+});
+
+/* ---- step 3: manual ranges ---- */
+$("btnLoad").addEventListener("click", () => { $("rangeBox").value = state.suggested; });
+
+$("btnCheck").addEventListener("click", async () => {
+  const e = state.eng; if (!e) return;
+  const btn = $("btnCheck"), out = $("checkOut");
+  const { ranges, errors } = e.parseRanges($("rangeBox").value);
+  if (!ranges.length){
+    out.innerHTML = "<div class='note bad'>" + (errors.join("<br>") || "No ranges found.") +
+      "<br>Example: <b>1-12, 13-30, 31-end</b></div>";
+    return;
+  }
+  btn.disabled = true; btn.textContent = "Measuring…"; out.innerHTML = "";
+  const parts = await e.sizeRanges(ranges);
+  btn.disabled = false; btn.textContent = "Check sizes";
+
+  state.ranges = ranges; state.parts = parts;
+  drawStrip(parts);
+
+  const { missing, dup } = e.coverage(ranges);
+  const total = parts.reduce((a,p) => a + p.size, 0);
+  let html = partsTable(parts, false) +
+    "<div class='note'>" + parts.length + " parts, " + human(total) + " in total. Original file: " + human(e.fileSize) + ".</div>";
+  if (errors.length) html += "<div class='note bad'>" + errors.join("<br>") + "</div>";
+  if (missing.length) html += "<div class='note warn'>These pages are in no part: " + listShort(missing) + "</div>";
+  if (dup.length) html += "<div class='note warn'>These pages appear in more than one part: " + listShort(dup) + "</div>";
+  if (!errors.length && !missing.length && !dup.length)
+    html += "<div class='note'>All " + e.n + " pages are covered exactly once.</div>";
+  out.innerHTML = html;
+});
+
+function listShort(arr){
+  const s = arr.join(", ");
+  return s.length > 220 ? s.slice(0, 220) + "… (" + arr.length + " pages)" : s;
+}
+
+/* ---- step 4: split and download ---- */
+$("btnSplit").addEventListener("click", async () => {
+  const e = state.eng; if (!e) return;
+  const out = $("splitOut"), btn = $("btnSplit");
+  let ranges = state.ranges;
+  if (!ranges.length){
+    const parsed = e.parseRanges($("rangeBox").value);
+    ranges = parsed.ranges;
+  }
+  if (!ranges.length){ out.innerHTML = "<div class='note bad'>No page ranges selected. Use step 2 or step 3 first.</div>"; return; }
+
+  const prefix = ($("inPrefix").value || "").trim() || e.stem;
+  btn.disabled = true; out.innerHTML = "";
+  state.files = [];
+
+  for (let i = 0; i < ranges.length; i++){
+    btn.textContent = "Writing part " + (i+1) + " of " + ranges.length + "…";
+    await frame();
+    const [s, en] = ranges[i];
+    const bytes = await e.build(s, en);
+    state.files.push({ name: e.fileNameFor(i+1, s, en, prefix), bytes });
+  }
+  btn.disabled = false; btn.textContent = "Split now";
+
+  const items = state.files.map((f, i) =>
+    "<li><span class='fname'>" + f.name + "</span><span class='fsize'>" + human(f.bytes.length) +
+    "</span><button class='small ghost' data-i='" + i + "'>Download</button></li>").join("");
+  out.innerHTML = "<ul class='files'>" + items + "</ul>" +
+    "<div class='btn-row' style='margin-top:14px'><button id='btnZip'>Download all as ZIP</button></div>";
+
+  out.querySelectorAll("button[data-i]").forEach(b => b.addEventListener("click", () => {
+    const f = state.files[+b.dataset.i];
+    saveBlob(new Blob([f.bytes], { type: "application/pdf" }), f.name);
+  }));
+  $("btnZip").addEventListener("click", async () => {
+    const z = $("btnZip"); z.disabled = true; z.textContent = "Zipping…";
+    const zip = new JSZip();
+    state.files.forEach(f => zip.file(f.name, f.bytes));
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+    saveBlob(blob, prefix + "_split_" + stamp() + ".zip");
+    z.disabled = false; z.textContent = "Download all as ZIP";
+  });
+});
+
+function saveBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function stamp(){
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes());
+}
+</script>
+</body>
+</html>
