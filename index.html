@@ -7,10 +7,33 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.4_2026-09-09.html
+  File: PDF_Toolkit_v2.5_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v2.5  2026-09-09  SIGNATURE added to the numbering and stamping tab.
+        A photograph or scan of a signature is turned into ink on a
+        transparent background, so the page shows through it and it
+        reads as signed rather than pasted on.
+        What it does by itself: trims the dark frame a phone photo or
+        scanner leaves around the paper, works out the ink/paper
+        threshold from the picture (Otsu), keys the paper out, keeps
+        the real pen colour, and crops to where the ink actually is,
+        ignoring stray specks.
+        What can then be adjusted live, with the result redrawn as
+        the slider moves: background removal, ink strength, edge
+        softness, colour boost, and whether to keep the pen colour or
+        force blue or black. Shown against a chequer (what shows
+        through) and against white.
+        Placing it: the chosen page is rendered and the signature can
+        be dragged onto it, or the page clicked to drop it there,
+        with width in mm, angle and transparency, and multiply
+        blending so the ink sits into the paper instead of over it.
+        Pages can be all, first, last or a range - a signature on the
+        last page only being the usual case.
+        Everything stays vector/image ink over the untouched scan,
+        and placement is correct on pages saved rotated.
 
   v2.4  2026-09-09  The numbering tab now carries two more stamps,
         applied in the same pass and on the same working file.
@@ -313,7 +336,7 @@
       <h1>PDF toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.4</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.5</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -653,6 +676,64 @@
       <p class="hint">The watermark is drawn over the page, not behind it, so keep the opacity low enough to read through \u2014 around 10\u201315% for a full-page mark.</p>
     </div>
 
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:7px; font-size:15px"><input type="checkbox" id="sigOn" style="accent-color:var(--accent)"><b>Add a signature image</b></label>
+    </div>
+    <div id="sigBlock" style="display:none; border-left:2px solid var(--accent-soft); padding-left:14px; margin-bottom:18px">
+      <div class="field">
+        <button id="btnPickSig" class="ghost small">Choose signature photo</button>
+        <span class="hint" style="margin:0" id="sigName">no image chosen</span>
+        <button id="btnSigAuto" class="ghost small">Reset to automatic</button>
+      </div>
+      <input type="file" id="sigInput" accept="image/*">
+      <p class="hint">A photo on plain paper works best. The paper is removed automatically — the frame around a phone photo, the paper tone and the shadow all go, and the pen colour is kept.</p>
+
+      <div class="slider-row"><label for="sigCut" style="font-size:14px; color:var(--muted); min-width:150px">Background removal</label>
+        <input type="range" id="sigCut" min="0" max="90" value="35"><span class="slider-val" id="sigCutVal">35</span></div>
+      <div class="slider-row"><label for="sigInk" style="font-size:14px; color:var(--muted); min-width:150px">Ink strength</label>
+        <input type="range" id="sigInk" min="0" max="95" value="45"><span class="slider-val" id="sigInkVal">45</span></div>
+      <div class="slider-row"><label for="sigSoft" style="font-size:14px; color:var(--muted); min-width:150px">Edge softness</label>
+        <input type="range" id="sigSoft" min="30" max="200" value="85"><span class="slider-val" id="sigSoftVal">85</span></div>
+      <div class="slider-row"><label for="sigSat" style="font-size:14px; color:var(--muted); min-width:150px">Colour boost</label>
+        <input type="range" id="sigSat" min="100" max="220" value="130"><span class="slider-val" id="sigSatVal">130%</span></div>
+      <div class="field">
+        <label for="sigMode">Ink colour</label>
+        <select id="sigMode">
+          <option value="keep" selected>keep the pen colour</option>
+          <option value="blue">force blue</option>
+          <option value="black">force black</option>
+        </select>
+        <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="sigTrim" checked style="accent-color:var(--accent)">trim the photo frame</label>
+        <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="sigCrop" checked style="accent-color:var(--accent)">crop to the ink</label>
+      </div>
+      <div id="sigOut"></div>
+
+      <h3 style="margin-top:18px">Put it on the page</h3>
+      <div class="field">
+        <label for="sigPageNo">Preview page</label>
+        <input type="number" id="sigPageNo" value="1" min="1" step="1" style="width:84px">
+        <button id="btnSigStage" class="ghost small">Show page</button>
+        <label for="sigPages">Sign which pages</label>
+        <input type="text" id="sigPages" value="last" style="width:150px">
+        <span class="hint" style="margin:0"><code>last</code>, <code>first</code>, <code>all</code> or a range</span>
+      </div>
+      <div class="slider-row"><label for="sigWidth" style="font-size:14px; color:var(--muted); min-width:150px">Width</label>
+        <input type="range" id="sigWidth" min="15" max="120" value="45"><span class="slider-val" id="sigWidthVal">45 mm</span></div>
+      <div class="slider-row"><label for="sigAngle" style="font-size:14px; color:var(--muted); min-width:150px">Angle</label>
+        <input type="range" id="sigAngle" min="-30" max="30" value="0"><span class="slider-val" id="sigAngleVal">0°</span></div>
+      <div class="slider-row"><label for="sigOpacity" style="font-size:14px; color:var(--muted); min-width:150px">Transparency</label>
+        <input type="range" id="sigOpacity" min="20" max="100" value="100"><span class="slider-val" id="sigOpacityVal">100%</span></div>
+      <div class="field">
+        <label for="sigBlend">How it sits on the paper</label>
+        <select id="sigBlend">
+          <option value="multiply" selected>into the paper (multiply) — looks signed</option>
+          <option value="normal">flat on top (normal)</option>
+        </select>
+      </div>
+      <p class="hint" id="sigPosNote">Drag the signature where it belongs, or click the page to drop it there.</p>
+      <div id="sigStage" style="position:relative; display:block; max-width:560px"></div>
+    </div>
+
     <div class="btn-row"><button id="btnNumApply">Apply to the PDF</button></div>
     <div id="numOut"></div>
   </div>
@@ -708,7 +789,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.4_2026-09-09</span>
+    <span>PDF_Toolkit_v2.5_2026-09-09</span>
   </footer>
 </div>
 
@@ -1325,8 +1406,72 @@ function createNumberer(PDFLib) {
     "red pen": [0.60, 0.10, 0.12]
   };
 
-  return { GLYPH, DEFAULTS, COLOURS, FONTS, POSITIONS, STAMP_DEFAULTS, WATERMARK_DEFAULTS,
-           planNumbers, stampAll, stampPage, place, placeView, drawStamp, expandTokens, unsupported, rng };
+
+  /* Place an image (a signature) with its centre at a point given as a
+     fraction of the page as the reader sees it. Correct on rotated pages. */
+  function drawImageAt(page, img, o) {
+    const rot = ((page.getRotation().angle % 360) + 360) % 360;
+    const { width: W, height: H } = page.getSize();
+    const viewW = (rot === 90 || rot === 270) ? H : W;
+    const viewH = (rot === 90 || rot === 270) ? W : H;
+    const spot = placeView(rot, W, H, (o.fx == null ? 0.5 : o.fx) * viewW,
+                                       (o.fy == null ? 0.5 : o.fy) * viewH);
+    const total = spot.rotate + (o.angle || 0);
+    const rad = total * Math.PI / 180;
+    const ax = Math.cos(rad), ay = Math.sin(rad);
+    const dx = Math.sin(rad), dy = -Math.cos(rad);
+    const w = o.widthPt;
+    const h = w * (img.height / img.width);
+    page.drawImage(img, {
+      x: spot.x - ax * w / 2 + dx * h / 2,
+      y: spot.y - ay * w / 2 + dy * h / 2,
+      width: w, height: h,
+      rotate: PDFLib.degrees(total),
+      opacity: o.opacity == null ? 1 : o.opacity,
+      blendMode: (o.blend === "multiply" && PDFLib.BlendMode) ? PDFLib.BlendMode.Multiply : undefined
+    });
+  }
+
+  /* ---- signature image processing (background removal) ---- */
+  function otsu(hist, total) {
+    let sumAll = 0;
+    for (let i = 0; i < 256; i++) sumAll += i * hist[i];
+    let sumB = 0, wB = 0, best = 0, thr = 128;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t]; if (!wB) continue;
+      const wF = total - wB; if (!wF) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB, mF = (sumAll - sumB) / wF;
+      const v = wB * wF * (mB - mF) * (mB - mF);
+      if (v > best) { best = v; thr = t; }
+    }
+    return thr;
+  }
+
+  /* Walk in from each edge while that edge line is mostly dark - the black
+     frame a phone photo or scan often leaves around the paper. */
+  function frameBox(lum, W, H) {
+    let t = 0, b = H - 1, l = 0, r = W - 1;
+    const darkRow = (y, l0, r0) => { let d = 0, n = 0; for (let x = l0; x <= r0; x++) { if (lum[y * W + x] < 110) d++; n++; } return d / Math.max(1, n); };
+    const darkCol = (x, t0, b0) => { let d = 0, n = 0; for (let y = t0; y <= b0; y++) { if (lum[y * W + x] < 110) d++; n++; } return d / Math.max(1, n); };
+    let guard = 0;
+    while (t < b && darkRow(t, l, r) > 0.5 && guard++ < H) t++;
+    guard = 0; while (b > t && darkRow(b, l, r) > 0.5 && guard++ < H) b--;
+    guard = 0; while (l < r && darkCol(l, t, b) > 0.5 && guard++ < W) l++;
+    guard = 0; while (r > l && darkCol(r, t, b) > 0.5 && guard++ < W) r--;
+    return { t, b, l, r };
+  }
+
+  const SIG_DEFAULTS = {
+    trimFrame: true, softness: 0.85, saturate: 1.3, mode: "keep",
+    inkColour: [0.10, 0.18, 0.52], opacity: 1, blend: "multiply",
+    widthMm: 45, angle: 0, fx: 0.72, fy: 0.86
+  };
+
+  return { GLYPH, DEFAULTS, COLOURS, FONTS, POSITIONS, STAMP_DEFAULTS, WATERMARK_DEFAULTS, SIG_DEFAULTS,
+           planNumbers, stampAll, stampPage, place, placeView, drawStamp, drawImageAt,
+           otsu, frameBox, expandTokens, unsupported, rng };
+
 }
 
 
@@ -2746,7 +2891,9 @@ $("btnNumApply").addEventListener("click", async () => {
   const e = S.eng, out = $("numOut"), btn = $("btnNumApply");
   if (!e) return;
   const doNum = $("numOn").checked, doTxt = $("txtOn").checked, doWm = $("wmOn").checked;
-  if (!doNum && !doTxt && !doWm) { out.innerHTML = "<div class='note bad'>Nothing is ticked to add.</div>"; return; }
+  const doSig = $("sigOn").checked && S.sig && S.sig.url;
+  if ($("sigOn").checked && !(S.sig && S.sig.url)) { out.innerHTML = "<div class='note bad'>Choose a signature image first.</div>"; return; }
+  if (!doNum && !doTxt && !doWm && !doSig) { out.innerHTML = "<div class='note bad'>Nothing is ticked to add.</div>"; return; }
 
   const plan = doNum ? numberPlan() : new Array(e.n).fill(null);
   const count = plan.filter(x => x != null).length;
@@ -2796,6 +2943,13 @@ $("btnNumApply").addEventListener("click", async () => {
       });
       did.push("watermark on " + list.length + " pages");
     }
+    if (doSig) {
+      const png = await doc.embedPng(S.sig.url);
+      const o = signatureOptions();
+      const list = pagesFromSpec($("sigPages").value, e.n);
+      list.forEach(i => { if (pages[i]) { NUM.drawImageAt(pages[i], png, o); touched.add(i); } });
+      did.push("signature on " + list.length + " page" + (list.length === 1 ? "" : "s"));
+    }
     bytes = await doc.save({ useObjectStreams: true });
   } catch (err) {
     btn.disabled = false; btn.textContent = "Apply to the PDF";
@@ -2820,7 +2974,7 @@ $("btnNumApply").addEventListener("click", async () => {
   } catch (err) { /* the preview is optional */ }
 
   const grew = bytes.length - e.fileSize;
-  const fname = e.stem + (doNum ? "_numbered" : "") + (doTxt ? "_stamped" : "") + (doWm ? "_watermarked" : "") + ".pdf";
+  const fname = e.stem + (doNum ? "_numbered" : "") + (doTxt ? "_stamped" : "") + (doWm ? "_watermarked" : "") + (doSig ? "_signed" : "") + ".pdf";
   out.innerHTML =
     "<div class='note good'><b>Added: " + did.join(", ") + ".</b> File is now " + human(bytes.length) + " \u2014 " +
     (grew >= 0 ? "only " + human(grew) + " larger" : human(-grew) + " smaller") +
@@ -2879,9 +3033,253 @@ function markOptions() {
   });
 }
 
-["txtOn", "wmOn"].forEach(id => $(id).addEventListener("change", () => {
-  $(id === "txtOn" ? "txtBlock" : "wmBlock").style.display = $(id).checked ? "" : "none";
+const BLOCKS = { txtOn: "txtBlock", wmOn: "wmBlock", sigOn: "sigBlock" };
+Object.keys(BLOCKS).forEach(id => $(id).addEventListener("change", () => {
+  $(BLOCKS[id]).style.display = $(id).checked ? "" : "none";
 }));
+
+
+/* ============================== SIGNATURE =============================== */
+S.sig = null;   // {src, thr, out, w, h, url}
+
+$("btnPickSig").addEventListener("click", () => $("sigInput").click());
+$("sigInput").addEventListener("change", async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    /* work at a sensible size: a phone photo can be enormous */
+    const scale = Math.min(1, 1200 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(img.width * scale));
+    c.height = Math.max(1, Math.round(img.height * scale));
+    c.getContext("2d", { alpha: false }).drawImage(img, 0, 0, c.width, c.height);
+    S.sig = { src: c, name: f.name };
+    $("sigName").textContent = f.name + " (" + c.width + "\u00d7" + c.height + ")";
+    autoSignature();
+  };
+  img.onerror = () => { $("sigOut").innerHTML = "<div class='note bad'>That image could not be read. Use a JPG or PNG.</div>"; };
+  img.src = URL.createObjectURL(f);
+});
+
+/* Work out sensible settings from the picture itself, then apply them. */
+function autoSignature() {
+  if (!S.sig) return;
+  const c = S.sig.src, W = c.width, H = c.height;
+  const d = c.getContext("2d").getImageData(0, 0, W, H).data;
+  const lum = new Float32Array(W * H);
+  const hist = new Uint32Array(256);
+  for (let p = 0, i = 0; p < d.length; p += 4, i++) {
+    const v = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+    lum[i] = v; hist[Math.min(255, Math.max(0, v | 0))]++;
+  }
+  S.sig.lum = lum;
+  const box = $("sigTrim").checked ? NUM.frameBox(lum, W, H) : { t: 0, b: H - 1, l: 0, r: W - 1 };
+  S.sig.box = box;
+  /* threshold from the picture inside the frame */
+  const h2 = new Uint32Array(256); let n = 0;
+  for (let y = box.t; y <= box.b; y++) for (let x = box.l; x <= box.r; x++) { h2[Math.min(255, lum[y * W + x] | 0)]++; n++; }
+  S.sig.thr = NUM.otsu(h2, n);
+  buildSignature();
+}
+
+/* Turn the picture into ink on a transparent background. */
+function buildSignature() {
+  if (!S.sig || !S.sig.lum) return;
+  const c = S.sig.src, W = c.width, H = c.height;
+  const src = c.getContext("2d").getImageData(0, 0, W, H).data;
+  const lum = S.sig.lum, thr = S.sig.thr;
+  const box = $("sigTrim").checked ? NUM.frameBox(lum, W, H) : { t: 0, b: H - 1, l: 0, r: W - 1 };
+
+  const removal = (+$("sigCut").value) / 100;        // how much of the paper to cut away
+  const strength = (+$("sigInk").value) / 100;       // how much counts as solid ink
+  const soft = (+$("sigSoft").value) / 100;          // edge softness
+  const sat = (+$("sigSat").value) / 100;            // colour boost
+  const mode = $("sigMode").value;
+  const cut = thr + removal * (255 - thr);
+  const ink = Math.max(0, thr * (1 - strength));
+  const span = Math.max(1, cut - ink);
+  const forced = mode === "keep" ? null : (mode === "blue" ? [26, 46, 133] : [20, 20, 24]);
+
+  /* alpha for every pixel inside the frame */
+  const bw = box.r - box.l + 1, bh = box.b - box.t + 1;
+  const alpha = new Float32Array(bw * bh);
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      const v = lum[(y + box.t) * W + (x + box.l)];
+      let a = (cut - v) / span;
+      a = a <= 0 ? 0 : (a >= 1 ? 1 : Math.pow(a, soft));
+      alpha[y * bw + x] = a;
+    }
+  }
+
+  /* crop to where the ink actually is, ignoring stray specks */
+  let x0 = 0, x1 = bw - 1, y0 = 0, y1 = bh - 1;
+  if ($("sigCrop").checked) {
+    const rowMin = Math.max(1, 0.004 * bw), colMin = Math.max(1, 0.004 * bh);
+    const rows = new Uint32Array(bh), cols = new Uint32Array(bw);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) if (alpha[y * bw + x] > 0.25) { rows[y]++; cols[x]++; }
+    y0 = 0; while (y0 < bh - 1 && rows[y0] <= rowMin) y0++;
+    y1 = bh - 1; while (y1 > y0 && rows[y1] <= rowMin) y1--;
+    x0 = 0; while (x0 < bw - 1 && cols[x0] <= colMin) x0++;
+    x1 = bw - 1; while (x1 > x0 && cols[x1] <= colMin) x1--;
+    const pad = 6;
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+    x1 = Math.min(bw - 1, x1 + pad); y1 = Math.min(bh - 1, y1 + pad);
+  }
+  const ow = x1 - x0 + 1, oh = y1 - y0 + 1;
+
+  const out = document.createElement("canvas");
+  out.width = ow; out.height = oh;
+  const octx = out.getContext("2d");
+  const od = octx.createImageData(ow, oh);
+  for (let y = 0; y < oh; y++) {
+    for (let x = 0; x < ow; x++) {
+      const sx = x + x0 + box.l, sy = y + y0 + box.t;
+      const si = (sy * W + sx) * 4, oi = (y * ow + x) * 4;
+      const a = alpha[(y + y0) * bw + (x + x0)];
+      if (forced) { od.data[oi] = forced[0]; od.data[oi + 1] = forced[1]; od.data[oi + 2] = forced[2]; }
+      else {
+        const g = lum[sy * W + sx];
+        od.data[oi]     = Math.max(0, Math.min(255, g + (src[si] - g) * sat));
+        od.data[oi + 1] = Math.max(0, Math.min(255, g + (src[si + 1] - g) * sat));
+        od.data[oi + 2] = Math.max(0, Math.min(255, g + (src[si + 2] - g) * sat));
+      }
+      od.data[oi + 3] = Math.round(a * 255);
+    }
+  }
+  octx.putImageData(od, 0, 0);
+  S.sig.out = out; S.sig.url = out.toDataURL("image/png");
+  showSignature();
+}
+
+function showSignature() {
+  const s = S.sig; if (!s || !s.url) return;
+  $("sigOut").innerHTML =
+    "<div class='preview'>" +
+      "<figure><img src='" + s.url + "' style='background:" +
+        "repeating-conic-gradient(#e8ecee 0% 25%, #fff 0% 50%) 50%/16px 16px'>" +
+        "<figcaption>Ink only \u2014 the chequer is what the page will show through (" + s.out.width + "\u00d7" + s.out.height + ")</figcaption></figure>" +
+      "<figure><img src='" + s.url + "' style='background:#fff'><figcaption>On white paper</figcaption></figure>" +
+    "</div>" +
+    "<div class='note'>If flecks of the old paper are still showing, raise <b>background removal</b>. If the strokes look thin or broken, lower it, or raise <b>ink strength</b>.</div>";
+  updateSigStage();
+}
+
+["sigCut", "sigInk", "sigSoft", "sigSat"].forEach(id => $(id).addEventListener("input", () => {
+  $(id + "Val").textContent = $(id).value + (id === "sigSat" ? "%" : "");
+  clearTimeout(S.sigTimer); S.sigTimer = setTimeout(buildSignature, 90);
+}));
+["sigMode", "sigTrim", "sigCrop"].forEach(id => $(id).addEventListener("change", buildSignature));
+$("btnSigAuto").addEventListener("click", () => {
+  $("sigCut").value = 35; $("sigInk").value = 45; $("sigSoft").value = 85; $("sigSat").value = 130;
+  ["sigCut", "sigInk", "sigSoft", "sigSat"].forEach(id => $(id + "Val").textContent = $(id).value + (id === "sigSat" ? "%" : ""));
+  $("sigTrim").checked = true; $("sigCrop").checked = true;
+  autoSignature();
+});
+
+/* ---- place it on the page by eye ---- */
+$("btnSigStage").addEventListener("click", () => updateSigStage(true));
+["sigWidth", "sigAngle", "sigOpacity"].forEach(id => $(id).addEventListener("input", () => {
+  $(id + "Val").textContent = $(id).value + (id === "sigWidth" ? " mm" : (id === "sigAngle" ? "\u00b0" : "%"));
+  layoutSigOverlay();
+}));
+
+async function updateSigStage(force) {
+  const s = S.sig, e = S.eng;
+  if (!s || !s.url || !e) return;
+  const stage = $("sigStage");
+  const pageNo = Math.min(Math.max(1, parseInt($("sigPageNo").value, 10) || e.n), e.n);
+  if (force || !stage.dataset.page || +stage.dataset.page !== pageNo) {
+    stage.innerHTML = "<div class='note'>Rendering page " + pageNo + "\u2026</div>";
+    const { canvas } = await renderCanvas(S.pdfjs, pageNo, 100 / 72, false);
+    const url = canvas.toDataURL("image/jpeg", 0.82);
+    const ratio = canvas.height / canvas.width;
+    canvas.width = canvas.height = 1;
+    stage.dataset.page = String(pageNo);
+    stage.dataset.ratio = String(ratio);
+    stage.innerHTML = "<img id='sigPageImg' src='" + url + "' style='width:100%;display:block;border:1px solid var(--line)'>" +
+      "<img id='sigOverlay' src='" + s.url + "' alt='signature' style='position:absolute;cursor:grab;touch-action:none'>";
+    bindSigDrag();
+  } else {
+    const ov = $("sigOverlay"); if (ov) ov.src = s.url;
+  }
+  layoutSigOverlay();
+}
+
+function layoutSigOverlay() {
+  const ov = $("sigOverlay"), img = $("sigPageImg"), s = S.sig, e = S.eng;
+  if (!ov || !img || !s) return;
+  const stageW = img.clientWidth || 520;
+  const pageNo = +$("sigStage").dataset.page || 1;
+  const widthMm = +$("sigWidth").value;
+  /* page width in mm, as the reader sees it */
+  const pw = S.sigPageWidthPt || 595;
+  const pxPerPt = stageW / pw;
+  const wPx = widthMm * (72 / 25.4) * pxPerPt;
+  const hPx = wPx * (s.out.height / s.out.width);
+  ov.style.width = wPx + "px";
+  ov.style.height = hPx + "px";
+  ov.style.opacity = (+$("sigOpacity").value) / 100;
+  ov.style.transform = "rotate(" + (-(+$("sigAngle").value)) + "deg)";
+  const fx = S.sigPos ? S.sigPos.fx : NUM.SIG_DEFAULTS.fx;
+  const fy = S.sigPos ? S.sigPos.fy : NUM.SIG_DEFAULTS.fy;
+  ov.style.left = (fx * stageW - wPx / 2) + "px";
+  ov.style.top = (fy * (img.clientHeight || 700) - hPx / 2) + "px";
+}
+
+function bindSigDrag() {
+  const stage = $("sigStage");
+  let drag = null;
+  stage.addEventListener("pointerdown", ev => {
+    const ov = $("sigOverlay"); if (!ov) return;
+    const img = $("sigPageImg");
+    const r = img.getBoundingClientRect();
+    if (ev.target === ov) {
+      drag = { r, offX: ev.clientX - ov.getBoundingClientRect().left, offY: ev.clientY - ov.getBoundingClientRect().top };
+      ov.setPointerCapture(ev.pointerId);
+    } else if (ev.target === img) {
+      /* a click on the page drops the signature there */
+      S.sigPos = { fx: (ev.clientX - r.left) / r.width, fy: (ev.clientY - r.top) / r.height };
+      layoutSigOverlay(); sigPosNote();
+    }
+    ev.preventDefault();
+  });
+  stage.addEventListener("pointermove", ev => {
+    if (!drag) return;
+    const ov = $("sigOverlay"), r = drag.r;
+    const cx = ev.clientX - drag.offX + ov.offsetWidth / 2 - r.left;
+    const cy = ev.clientY - drag.offY + ov.offsetHeight / 2 - r.top;
+    S.sigPos = { fx: Math.max(0, Math.min(1, cx / r.width)), fy: Math.max(0, Math.min(1, cy / r.height)) };
+    layoutSigOverlay();
+    ev.preventDefault();
+  });
+  stage.addEventListener("pointerup", () => { if (drag) { drag = null; sigPosNote(); } });
+}
+
+function sigPosNote() {
+  const p = S.sigPos || NUM.SIG_DEFAULTS;
+  $("sigPosNote").textContent = "Position: " + Math.round(p.fx * 100) + "% across, " + Math.round(p.fy * 100) + "% down the page.";
+}
+
+$("sigPageNo").addEventListener("change", async () => {
+  const e = S.eng; if (!e) return;
+  const pageNo = Math.min(Math.max(1, parseInt($("sigPageNo").value, 10) || 1), e.n);
+  const page = await S.pdfjs.getPage(pageNo);
+  const vp = page.getViewport({ scale: 1 });
+  S.sigPageWidthPt = vp.width;
+  updateSigStage(true);
+});
+
+function signatureOptions() {
+  const p = S.sigPos || NUM.SIG_DEFAULTS;
+  return {
+    fx: p.fx, fy: p.fy,
+    widthPt: (+$("sigWidth").value) * 72 / 25.4,
+    angle: +$("sigAngle").value,
+    opacity: (+$("sigOpacity").value) / 100,
+    blend: $("sigBlend").value
+  };
+}
 
 </script>
 </body>
