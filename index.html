@@ -3,14 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PDF Toolkit — split, compress, organise, number</title>
+<title>PDF Toolkit — split, compress, organise, number, stamp</title>
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.3_2026-09-09.html
+  File: PDF_Toolkit_v2.4_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v2.4  2026-09-09  The numbering tab now carries two more stamps,
+        applied in the same pass and on the same working file.
+        CUSTOM TEXT: any line of text at any of nine positions on the
+        page - three corners on each edge plus the centre - with
+        margins in mm, size, font, colour, transparency and an angle.
+        It can go on all pages, odd, even, first, last, or a page
+        range. The text may carry {page}, {total}, {num} (the pencil
+        number that page received), {date} and {file}, so a footer
+        such as "Page {page} of {total}" fills itself in.
+        WATERMARK: a large faint line across the page, centred and
+        angled by default, or tiled across the whole sheet for a
+        COPY or CERTIFIED COPY mark, with its own pages, size,
+        colour, angle and transparency.
+        Both are drawn as vector ink like the page numbers, so the
+        scan is never re-encoded and the file grows by a few KB.
+        Placement is correct on pages saved rotated 90, 180 or 270
+        degrees. Page numbering itself is now a tick box too, so a
+        watermark can be added on its own. Text that the built-in PDF
+        fonts cannot draw - Tamil, Hindi and other non-Latin scripts
+        - is reported plainly before anything is written rather than
+        being silently dropped.
 
   v2.3  2026-09-09  Auto-split made much faster, and the split tab can
         now be driven by eye.
@@ -291,7 +313,7 @@
       <h1>PDF toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.3</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.4</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -334,7 +356,7 @@
     <button role="tab" data-tab="split"    aria-selected="true">Split by size</button>
     <button role="tab" data-tab="compress" aria-selected="false">Compress</button>
     <button role="tab" data-tab="organise" aria-selected="false">Organise pages</button>
-    <button role="tab" data-tab="number"   aria-selected="false">Number pages</button>
+    <button role="tab" data-tab="number"   aria-selected="false">Number &amp; stamp</button>
     <button role="tab" data-tab="auto"     aria-selected="false">Auto-split</button>
   </div>
 
@@ -485,8 +507,8 @@
 
   <!-- ---------- NUMBER PAGES ---------- -->
   <div class="panel" id="tab-number" hidden data-locked="true">
-    <h2>Number the pages by hand</h2>
-    <p class="hint">Writes a small pencil-style number at a corner of each page — the same numbering you pencil onto the originals before filing. The digits are drawn as ink on top of the page, so the scan itself is never re-encoded: no loss of quality, and the file grows by only a few KB. Blank pages are left out.</p>
+    <h2>Number and stamp the pages</h2>
+    <p class="hint">Writes a small pencil-style number at a corner of each page — the same numbering you pencil onto originals before filing — and, if you want, a line of custom text anywhere on the page and a watermark. All three are drawn as ink on top of the page, so the scan is never re-encoded: no loss of quality, and the file grows by a few KB. Blank pages are left unnumbered.</p>
 
     <h3>Step A — mark the pages that should stay blank</h3>
     <div class="btn-row">
@@ -497,6 +519,9 @@
     <div id="numGridOut"></div>
 
     <h3>Step B — how the number should look</h3>
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:7px; font-size:15px"><input type="checkbox" id="numOn" checked style="accent-color:var(--accent)"><b>Add page numbers</b></label>
+    </div>
     <div class="field">
       <label for="numStart">Start from</label>
       <input type="number" id="numStart" value="1" min="0" step="1" style="width:90px">
@@ -531,7 +556,104 @@
       </select>
       <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="numJitter" checked style="accent-color:var(--accent)">handwritten wobble</label>
     </div>
-    <div class="btn-row"><button id="btnNumApply">Apply numbering</button></div>
+    <h3>Step C — extra stamps (optional)</h3>
+
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:7px; font-size:15px"><input type="checkbox" id="txtOn" style="accent-color:var(--accent)"><b>Add a line of custom text</b></label>
+    </div>
+    <div id="txtBlock" style="display:none; border-left:2px solid var(--accent-soft); padding-left:14px; margin-bottom:18px">
+      <div class="field">
+        <label for="txtText">Text</label>
+        <input type="text" id="txtText" value="C.No. IV/16/2026" style="width:340px">
+      </div>
+      <p class="hint" style="margin-top:-6px">Fills itself in: <code>{page}</code> <code>{total}</code> <code>{num}</code> (the pencil number on that page) <code>{date}</code> <code>{file}</code>. So <code>Page {page} of {total}</code> works.</p>
+      <div class="field">
+        <label for="txtPos">Position</label>
+        <select id="txtPos">
+          <option value="top-left">top left</option>
+          <option value="top-centre">top centre</option>
+          <option value="top-right" selected>top right</option>
+          <option value="middle-left">middle left</option>
+          <option value="centre">centre</option>
+          <option value="middle-right">middle right</option>
+          <option value="bottom-left">bottom left</option>
+          <option value="bottom-centre">bottom centre</option>
+          <option value="bottom-right">bottom right</option>
+        </select>
+        <label for="txtMx">from edge</label>
+        <input type="number" id="txtMx" value="12" min="0" step="1" style="width:76px"><span class="hint" style="margin:0">mm across</span>
+        <input type="number" id="txtMy" value="12" min="0" step="1" style="width:76px"><span class="hint" style="margin:0">mm down</span>
+      </div>
+      <div class="field">
+        <label for="txtSize">Size</label>
+        <input type="number" id="txtSize" value="10" min="4" max="72" step="1" style="width:76px">
+        <label for="txtFont">Font</label>
+        <select id="txtFont">
+          <option value="Helvetica" selected>Helvetica</option>
+          <option value="HelveticaBold">Helvetica bold</option>
+          <option value="TimesRoman">Times</option>
+          <option value="TimesRomanBold">Times bold</option>
+          <option value="Courier">Courier</option>
+          <option value="CourierBold">Courier bold</option>
+        </select>
+        <label for="txtColour">Ink</label>
+        <select id="txtColour">
+          <option value="black" selected>black</option>
+          <option value="grey">grey</option>
+          <option value="blue pen">blue</option>
+          <option value="red pen">red</option>
+        </select>
+        <label for="txtAngle">Angle</label>
+        <input type="number" id="txtAngle" value="0" min="-90" max="90" step="5" style="width:76px">
+        <label for="txtOpacity">Opacity %</label>
+        <input type="number" id="txtOpacity" value="100" min="5" max="100" step="5" style="width:76px">
+      </div>
+      <div class="field">
+        <label for="txtPages">On which pages</label>
+        <input type="text" id="txtPages" value="all" style="width:200px">
+        <span class="hint" style="margin:0"><code>all</code>, <code>odd</code>, <code>even</code>, <code>first</code>, <code>last</code>, or a range such as <code>1-5, 9</code></span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:7px; font-size:15px"><input type="checkbox" id="wmOn" style="accent-color:var(--accent)"><b>Add a watermark</b></label>
+    </div>
+    <div id="wmBlock" style="display:none; border-left:2px solid var(--accent-soft); padding-left:14px; margin-bottom:18px">
+      <div class="field">
+        <label for="wmText">Watermark text</label>
+        <input type="text" id="wmText" value="CERTIFIED COPY" style="width:300px">
+      </div>
+      <div class="field">
+        <label for="wmSize">Size</label>
+        <input type="number" id="wmSize" value="64" min="10" max="200" step="2" style="width:80px">
+        <label for="wmFont">Font</label>
+        <select id="wmFont">
+          <option value="HelveticaBold" selected>Helvetica bold</option>
+          <option value="Helvetica">Helvetica</option>
+          <option value="TimesRomanBold">Times bold</option>
+          <option value="Courier">Courier</option>
+        </select>
+        <label for="wmColour">Ink</label>
+        <select id="wmColour">
+          <option value="grey" selected>grey</option>
+          <option value="black">black</option>
+          <option value="blue pen">blue</option>
+          <option value="red pen">red</option>
+        </select>
+        <label for="wmAngle">Angle</label>
+        <input type="number" id="wmAngle" value="45" min="-90" max="90" step="5" style="width:76px">
+        <label for="wmOpacity">Opacity %</label>
+        <input type="number" id="wmOpacity" value="14" min="3" max="100" step="1" style="width:76px">
+      </div>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="wmTile" style="accent-color:var(--accent)">repeat it across the whole page</label>
+        <label for="wmPages">On which pages</label>
+        <input type="text" id="wmPages" value="all" style="width:200px">
+      </div>
+      <p class="hint">The watermark is drawn over the page, not behind it, so keep the opacity low enough to read through \u2014 around 10\u201315% for a full-page mark.</p>
+    </div>
+
+    <div class="btn-row"><button id="btnNumApply">Apply to the PDF</button></div>
     <div id="numOut"></div>
   </div>
 
@@ -586,7 +708,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.3_2026-09-09</span>
+    <span>PDF_Toolkit_v2.4_2026-09-09</span>
   </footer>
 </div>
 
@@ -1088,6 +1210,105 @@ function createNumberer(PDFLib) {
     return doc;
   }
 
+
+  /* ---------------- custom text stamps and watermarks ----------------
+     These use the built-in PDF fonts, so nothing is downloaded. They
+     cover English, digits and common punctuation only - Tamil, Hindi
+     and other non-Latin scripts cannot be drawn this way.            */
+
+  const POSITIONS = {
+    "top-left": [0, 0], "top-centre": [0.5, 0], "top-right": [1, 0],
+    "middle-left": [0, 0.5], "centre": [0.5, 0.5], "middle-right": [1, 0.5],
+    "bottom-left": [0, 1], "bottom-centre": [0.5, 1], "bottom-right": [1, 1]
+  };
+
+  /* A point in the page's own coordinates, from a point in the view. */
+  function placeView(rot, W, H, vx, vy) {
+    switch (rot) {
+      case 90:  return { x: vy, y: vx, rotate: 90 };
+      case 180: return { x: W - vx, y: vy, rotate: 180 };
+      case 270: return { x: W - vy, y: H - vx, rotate: -90 };
+      default:  return { x: vx, y: H - vy, rotate: 0 };
+    }
+  }
+
+  function viewPoint(position, viewW, viewH, mx, my) {
+    const a = POSITIONS[position] || POSITIONS["top-left"];
+    const vx = a[0] === 0 ? mx : (a[0] === 1 ? viewW - mx : viewW / 2);
+    const vy = a[1] === 0 ? my : (a[1] === 1 ? viewH - my : viewH / 2);
+    /* how the text hangs off that point */
+    const vAlign = a[1] === 0 ? 1 : (a[1] === 1 ? 0 : 0.35);
+    return { vx, vy, hAlign: a[0], vAlign };
+  }
+
+  /* Draw one line of text at a chosen spot, correct on a rotated page. */
+  function drawStamp(page, text, o, font) {
+    if (!text) return;
+    const rot = ((page.getRotation().angle % 360) + 360) % 360;
+    const { width: W, height: H } = page.getSize();
+    const viewW = (rot === 90 || rot === 270) ? H : W;
+    const viewH = (rot === 90 || rot === 270) ? W : H;
+    const mx = (o.marginXmm || 0) * MM, my = (o.marginYmm || 0) * MM;
+
+    const spots = [];
+    if (o.tile) {
+      const cols = o.tileCols || 3, rows = o.tileRows || 4;
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          spots.push({ vx: viewW * (c + 0.5) / cols, vy: viewH * (r + 0.5) / rows, hAlign: 0.5, vAlign: 0.35 });
+        }
+      }
+    } else {
+      spots.push(viewPoint(o.position || "top-left", viewW, viewH, mx, my));
+    }
+
+    const w = font.widthOfTextAtSize(text, o.sizePt);
+    const asc = o.sizePt * 0.78;
+    for (const sp of spots) {
+      const spot = placeView(rot, W, H, sp.vx, sp.vy);
+      const total = spot.rotate + (o.angle || 0);
+      const rad = total * Math.PI / 180;
+      const ax = Math.cos(rad), ay = Math.sin(rad);
+      const dx = Math.sin(rad), dy = -Math.cos(rad);
+      page.drawText(text, {
+        x: spot.x - ax * w * sp.hAlign + dx * asc * sp.vAlign,
+        y: spot.y - ay * w * sp.hAlign + dy * asc * sp.vAlign,
+        size: o.sizePt,
+        font,
+        color: PDFLib.rgb(o.colour[0], o.colour[1], o.colour[2]),
+        opacity: o.opacity == null ? 1 : o.opacity,
+        rotate: PDFLib.degrees(total)
+      });
+    }
+  }
+
+  /* {page} {total} {num} {date} {file} */
+  function expandTokens(text, ctx) {
+    return String(text)
+      .replace(/\{page\}/gi, String(ctx.page))
+      .replace(/\{total\}/gi, String(ctx.total))
+      .replace(/\{num\}/gi, ctx.num == null ? "" : String(ctx.num))
+      .replace(/\{date\}/gi, ctx.date)
+      .replace(/\{file\}/gi, ctx.file || "");
+  }
+
+  /* Text that the built-in fonts cannot draw (non-Latin scripts etc). */
+  function unsupported(text) {
+    const bad = String(text).replace(/[\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022]/g, "");
+    return [...new Set(bad.split(""))].join("");
+  }
+
+  const FONTS = ["Helvetica", "HelveticaBold", "TimesRoman", "TimesRomanBold", "Courier", "CourierBold"];
+
+  const STAMP_DEFAULTS = {
+    position: "top-right", marginXmm: 12, marginYmm: 12,
+    sizePt: 10, angle: 0, colour: [0.1, 0.1, 0.1], opacity: 1, tile: false
+  };
+  const WATERMARK_DEFAULTS = {
+    position: "centre", marginXmm: 0, marginYmm: 0,
+    sizePt: 64, angle: 45, colour: [0.45, 0.47, 0.5], opacity: 0.14, tile: false
+  };
+
   const DEFAULTS = {
     corner: "top-left",
     marginXmm: 10, marginYmm: 10,
@@ -1104,7 +1325,8 @@ function createNumberer(PDFLib) {
     "red pen": [0.60, 0.10, 0.12]
   };
 
-  return { GLYPH, DEFAULTS, COLOURS, planNumbers, stampAll, stampPage, place, rng };
+  return { GLYPH, DEFAULTS, COLOURS, FONTS, POSITIONS, STAMP_DEFAULTS, WATERMARK_DEFAULTS,
+           planNumbers, stampAll, stampPage, place, placeView, drawStamp, expandTokens, unsupported, rng };
 }
 
 
@@ -2523,55 +2745,143 @@ $("btnSuggestBlank").addEventListener("click", async () => {
 $("btnNumApply").addEventListener("click", async () => {
   const e = S.eng, out = $("numOut"), btn = $("btnNumApply");
   if (!e) return;
-  const plan = numberPlan();
-  const count = plan.filter(x => x != null).length;
-  if (!count) { out.innerHTML = "<div class='note bad'>Every page is ticked as blank \u2014 nothing to number.</div>"; return; }
+  const doNum = $("numOn").checked, doTxt = $("txtOn").checked, doWm = $("wmOn").checked;
+  if (!doNum && !doTxt && !doWm) { out.innerHTML = "<div class='note bad'>Nothing is ticked to add.</div>"; return; }
 
-  btn.disabled = true; btn.textContent = "Numbering\u2026"; out.innerHTML = ""; await frame();
-  let bytes;
+  const plan = doNum ? numberPlan() : new Array(e.n).fill(null);
+  const count = plan.filter(x => x != null).length;
+  if (doNum && !count) { out.innerHTML = "<div class='note bad'>Every page is ticked as blank \u2014 nothing to number.</div>"; return; }
+
+  /* the built-in fonts cannot draw every script; say so rather than dropping characters */
+  const bad = [doTxt ? NUM.unsupported($("txtText").value) : "", doWm ? NUM.unsupported($("wmText").value) : ""].join("");
+  if (bad) {
+    out.innerHTML = "<div class='note bad'>These characters cannot be drawn with the built-in PDF fonts: <b>" + esc(bad) +
+      "</b><br>Text stamps and watermarks work in English, digits and ordinary punctuation. Tamil, Hindi and other non-Latin scripts would need a font file to be embedded, which this offline tool does not carry.</div>";
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "Working\u2026"; out.innerHTML = ""; await frame();
+  let bytes, touched = new Set(), did = [];
   try {
     const doc = await PDFLib.PDFDocument.load(S.bytes.slice(), { ignoreEncryption: true });
-    NUM.stampAll(doc, plan, numOptions());
+    const pages = doc.getPages();
+    const today = new Date().toLocaleDateString("en-GB");
+
+    if (doNum) {
+      NUM.stampAll(doc, plan, numOptions());
+      plan.forEach((v, i) => { if (v != null) touched.add(i); });
+      did.push(count + " page numbers");
+    }
+    if (doTxt) {
+      const font = await doc.embedFont(PDFLib.StandardFonts[$("txtFont").value]);
+      const o = textOptions();
+      const list = pagesFromSpec($("txtPages").value, e.n);
+      list.forEach(i => {
+        if (!pages[i]) return;
+        const txt = NUM.expandTokens($("txtText").value, { page: i + 1, total: e.n, num: plan[i], date: today, file: e.stem });
+        NUM.drawStamp(pages[i], txt, o, font);
+        touched.add(i);
+      });
+      did.push("text on " + list.length + " pages");
+    }
+    if (doWm) {
+      const font = await doc.embedFont(PDFLib.StandardFonts[$("wmFont").value]);
+      const o = markOptions();
+      const list = pagesFromSpec($("wmPages").value, e.n);
+      list.forEach(i => {
+        if (!pages[i]) return;
+        const txt = NUM.expandTokens($("wmText").value, { page: i + 1, total: e.n, num: plan[i], date: today, file: e.stem });
+        NUM.drawStamp(pages[i], txt, o, font);
+        touched.add(i);
+      });
+      did.push("watermark on " + list.length + " pages");
+    }
     bytes = await doc.save({ useObjectStreams: true });
   } catch (err) {
-    btn.disabled = false; btn.textContent = "Apply numbering";
+    btn.disabled = false; btn.textContent = "Apply to the PDF";
     out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>"; return;
   }
-  btn.disabled = false; btn.textContent = "Apply numbering";
+  btn.disabled = false; btn.textContent = "Apply to the PDF";
 
-  /* show the real result: the first numbered page, plus a close-up of the corner */
-  const firstNumbered = plan.findIndex(x => x != null);
+  const firstTouched = touched.size ? Math.min(...touched) : 0;
   let full = "", close = "";
   try {
     const pj = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
-    const { canvas } = await renderCanvas(pj, firstNumbered + 1, 110 / 72, false);
+    const { canvas } = await renderCanvas(pj, firstTouched + 1, 110 / 72, false);
     full = canvas.toDataURL("image/jpeg", 0.8);
-    const cw = Math.floor(canvas.width * 0.42), ch = Math.floor(canvas.height * 0.20);
-    const corner = $("numCorner").value;
-    const cx = corner.includes("right") ? canvas.width - cw : 0;
-    const cy = corner.includes("bottom") ? canvas.height - ch : 0;
+    const cw = Math.floor(canvas.width * 0.46), ch = Math.floor(canvas.height * 0.22);
+    const corner = doNum ? $("numCorner").value : $("txtPos").value;
+    const cx = corner.indexOf("right") >= 0 ? canvas.width - cw : 0;
+    const cy = corner.indexOf("bottom") >= 0 ? canvas.height - ch : 0;
     const cr = crop(canvas, cx, cy, cw, ch);
     close = cr.toDataURL("image/png");
     canvas.width = canvas.height = 1; cr.width = cr.height = 1;
     pj.destroy();
-  } catch (err) { /* preview is optional */ }
+  } catch (err) { /* the preview is optional */ }
 
   const grew = bytes.length - e.fileSize;
-  const fname = e.stem + "_numbered.pdf";
+  const fname = e.stem + (doNum ? "_numbered" : "") + (doTxt ? "_stamped" : "") + (doWm ? "_watermarked" : "") + ".pdf";
   out.innerHTML =
-    "<div class='note good'><b>Numbered " + count + " pages</b> (" + plan.filter(x => x != null)[0] + " to " +
-    plan.filter(x => x != null).slice(-1)[0] + "), " + (plan.length - count) + " left blank. " +
-    "File is now " + human(bytes.length) + " \u2014 " + (grew >= 0 ? "only " + human(grew) + " larger" : human(-grew) + " smaller") +
-    ", because the number is drawn as ink and the scan is untouched.</div>" +
+    "<div class='note good'><b>Added: " + did.join(", ") + ".</b> File is now " + human(bytes.length) + " \u2014 " +
+    (grew >= 0 ? "only " + human(grew) + " larger" : human(-grew) + " smaller") +
+    ", because everything is drawn as ink and the pages themselves are untouched.</div>" +
     (close ? "<div class='preview'>" +
-      "<figure><img src='" + close + "' alt='close-up of the number'><figcaption>Close-up \u2014 page " + (firstNumbered + 1) + ", number " + plan[firstNumbered] + "</figcaption></figure>" +
+      "<figure><img src='" + close + "' alt='close-up'><figcaption>Close-up \u2014 page " + (firstTouched + 1) + "</figcaption></figure>" +
       "<figure><img src='" + full + "' alt='whole page'><figcaption>Whole page</figcaption></figure></div>" : "") +
     "<div class='btn-row' style='margin-top:12px'><button id='btnDlN'>Download " + esc(fname) + "</button>" +
     "<button id='btnUseN' class='ghost'>Use as working file</button></div>" +
-    "<div class='note'>If the number sits over the text or too far in, change the margins and apply again \u2014 each run starts from the working file, so numbers never stack up.</div>";
+    "<div class='note'>Each run starts from the working file, so stamps never pile up. If something sits over the text, change the position or margins and apply again.</div>";
   $("btnDlN").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
-  $("btnUseN").addEventListener("click", async () => { await setWorking(bytes, fname, "numbered " + count + "p"); showTab("split"); });
+  $("btnUseN").addEventListener("click", async () => { await setWorking(bytes, fname, did.join(" + ")); showTab("split"); });
 });
+
+/* ------------------------- extra stamps: helpers ------------------------- */
+function pagesFromSpec(spec, n) {
+  const t = String(spec || "all").trim().toLowerCase();
+  const all = Array.from({ length: n }, (_, i) => i);
+  if (!t || t === "all") return all;
+  if (t === "odd") return all.filter(i => (i + 1) % 2 === 1);
+  if (t === "even") return all.filter(i => (i + 1) % 2 === 0);
+  if (t === "first") return [0];
+  if (t === "last") return [n - 1];
+  const { ranges } = S.eng.parseRanges(spec.replace(/end|last/gi, String(n)));
+  const out = new Set();
+  ranges.forEach(([s, e]) => { for (let p = s; p < e; p++) out.add(p); });
+  return [...out].sort((a, b) => a - b);
+}
+
+function stampColour(id) {
+  const v = $(id).value;
+  if (v === "black") return [0.05, 0.05, 0.05];
+  if (v === "grey") return [0.45, 0.47, 0.50];
+  return NUM.COLOURS[v] || NUM.COLOURS.pencil;
+}
+
+function textOptions() {
+  return Object.assign({}, NUM.STAMP_DEFAULTS, {
+    position: $("txtPos").value,
+    marginXmm: parseFloat($("txtMx").value) || 0,
+    marginYmm: parseFloat($("txtMy").value) || 0,
+    sizePt: parseFloat($("txtSize").value) || 10,
+    angle: parseFloat($("txtAngle").value) || 0,
+    colour: stampColour("txtColour"),
+    opacity: (parseFloat($("txtOpacity").value) || 100) / 100
+  });
+}
+
+function markOptions() {
+  return Object.assign({}, NUM.WATERMARK_DEFAULTS, {
+    sizePt: parseFloat($("wmSize").value) || 64,
+    angle: parseFloat($("wmAngle").value) || 0,
+    colour: stampColour("wmColour"),
+    opacity: (parseFloat($("wmOpacity").value) || 14) / 100,
+    tile: $("wmTile").checked
+  });
+}
+
+["txtOn", "wmOn"].forEach(id => $(id).addEventListener("change", () => {
+  $(id === "txtOn" ? "txtBlock" : "wmBlock").style.display = $(id).checked ? "" : "none";
+}));
 
 </script>
 </body>
