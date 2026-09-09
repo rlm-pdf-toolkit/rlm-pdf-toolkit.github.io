@@ -3,14 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PDF Toolkit — split, compress, organise, number, stamp</title>
+<title>PDF & photo toolkit — split, compress, organise, number, stamp, photo</title>
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.6_2026-09-09.html
+  File: PDF_Toolkit_v3.0_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v3.0  2026-09-09  PHOTO & SIGNATURE editor added - the form-photo
+        problem, where every application asks for a different size.
+        SIZE: give the size in mm, cm, inches or pixels with a DPI,
+        and the other reading is worked out for you; the resolution
+        is written into the file itself (JPEG JFIF density, PNG pHYs)
+        rather than merely implied by the pixel count. A file-size
+        target in KB, minimum and maximum, is met by hunting for the
+        right JPEG quality instead of guessing. Presets for the sizes
+        forms usually ask for, all editable.
+        FRAMING: drag the picture behind a fixed frame of the target
+        shape, zoom, straighten, turn by 90 degrees, with an optional
+        head-and-eye guide for passport rules.
+        CLEANING: brightness, contrast, colour, sharpening, one-press
+        automatic white balance and levels, and a spot cleaner - tap
+        a blemish and it is filled from the skin around it, with undo.
+        BACKGROUND: the wall behind the subject is flooded away from
+        the edges of the picture and replaced with white, light blue,
+        blue, grey, cream or any colour, with a softened edge. The
+        reference colour is taken from the top and upper sides and as
+        a median, so shoulders touching the bottom edge cannot drag
+        it off.
+        SIGNATURE: the same panel in signature mode keys the paper
+        away and keeps the ink, on white or transparent, in the pen
+        colour or forced blue or black.
+        CAPTION: name and date below the picture, or on one line,
+        with font, size, weight, colour, strip colour and alignment.
+        PLUS a border, and a print sheet of copies on A4, 4x6 or 5x7
+        with cut outlines, to hand to a photo shop.
 
   v2.6  2026-09-09  SEVERAL PAGES ON ONE SHEET added to the compress
         tab, and it runs on its own - nothing is compressed unless
@@ -352,10 +381,10 @@
 
   <header class="masthead">
     <div>
-      <h1>PDF toolkit</h1>
+      <h1>PDF &amp; photo toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.6</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v3.0</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -400,6 +429,7 @@
     <button role="tab" data-tab="organise" aria-selected="false">Organise pages</button>
     <button role="tab" data-tab="number"   aria-selected="false">Number &amp; stamp</button>
     <button role="tab" data-tab="auto"     aria-selected="false">Auto-split</button>
+    <button role="tab" data-tab="photo"    aria-selected="false">Photo &amp; sign</button>
   </div>
 
   <!-- ---------- SPLIT ---------- -->
@@ -849,9 +879,172 @@
     <div id="pageTableOut"></div>
   </div>
 
+
+  <!-- ---------- PHOTO & SIGNATURE ---------- -->
+  <div class="panel" id="tab-photo" hidden>
+    <h2>Photo &amp; signature for forms</h2>
+    <p class="hint">Every application asks for a different size. Set what the form wants once — in mm, cm, inches or pixels — and the picture is cropped, cleaned and saved to exactly that size, resolution and file size. The picture never leaves this device.</p>
+
+    <h3>1 — What the form asks for</h3>
+    <div class="field">
+      <label for="phPreset">Common sizes</label>
+      <select id="phPreset" style="max-width:320px"></select>
+      <label for="phKind">This is a</label>
+      <select id="phKind"><option value="photo" selected>photograph</option><option value="sign">signature</option></select>
+    </div>
+    <div class="field">
+      <label for="phW">Width</label><input type="number" id="phW" value="35" min="1" step="0.5" style="width:84px">
+      <label for="phH">Height</label><input type="number" id="phH" value="45" min="1" step="0.5" style="width:84px">
+      <select id="phUnit"><option value="mm" selected>mm</option><option value="cm">cm</option><option value="in">inch</option><option value="px">pixels</option></select>
+      <label for="phDpi">DPI</label>
+      <select id="phDpi"><option value="96">96</option><option value="150">150</option><option value="200">200</option><option value="300" selected>300</option><option value="600">600</option></select>
+    </div>
+    <div class="field">
+      <label for="phMinKB">File size</label>
+      <input type="number" id="phMinKB" placeholder="min KB" min="0" step="1" style="width:100px">
+      <span class="hint" style="margin:0">to</span>
+      <input type="number" id="phMaxKB" placeholder="max KB" min="0" step="1" style="width:100px">
+      <label for="phFormat">Save as</label>
+      <select id="phFormat"><option value="jpeg" selected>JPG</option><option value="png">PNG</option></select>
+    </div>
+    <div class="note" id="phSizeNote"></div>
+    <div class="note warn">These presets are starting points, not authority. Always check the size, resolution and file-size limits printed in the notice you are filling in — they differ between forms and change between years.</div>
+
+    <h3>2 — The picture</h3>
+    <div class="field">
+      <button id="btnPhPick" class="ghost small">Choose photo / signature</button>
+      <span class="hint" style="margin:0" id="phName2">no image chosen</span>
+    </div>
+    <input type="file" id="phInput" accept="image/*">
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start">
+      <div>
+        <canvas id="phStage" style="border:1px solid var(--line); border-radius:3px; touch-action:none; cursor:grab; background:#fff"></canvas>
+        <div class="hint" style="margin-top:6px">Drag the picture to frame it</div>
+      </div>
+      <div style="flex:1; min-width:250px">
+        <div class="slider-row"><label for="phZoom" style="font-size:14px;color:var(--muted);min-width:90px">Zoom</label>
+          <input type="range" id="phZoom" min="100" max="400" value="100"><span class="slider-val" id="phZoomVal">100%</span></div>
+        <div class="slider-row"><label for="phStraight" style="font-size:14px;color:var(--muted);min-width:90px">Straighten</label>
+          <input type="range" id="phStraight" min="-100" max="100" value="0"><span class="slider-val" id="phStraightVal">0°</span></div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button id="btnPhRotate" class="ghost small">Turn 90°</button>
+          <button id="btnPhCentre" class="ghost small">Re-centre</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:14px"><input type="checkbox" id="phGuides" checked style="accent-color:var(--accent)">head &amp; eye guide</label>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="phHeal" style="accent-color:var(--accent)">spot cleaner — tap a blemish</label>
+          <label for="phHealSize">size</label>
+          <input type="number" id="phHealSize" value="10" min="2" max="60" step="1" style="width:74px">
+          <button id="btnPhUndoHeal" class="ghost small">Undo last spot</button>
+        </div>
+      </div>
+    </div>
+
+    <h3>3 — Clean it up</h3>
+    <div class="btn-row" style="margin-bottom:10px">
+      <button id="btnPhAuto" class="ghost small">Automatic white balance &amp; levels</button>
+      <button id="btnPhReset" class="ghost small">Reset adjustments</button>
+    </div>
+    <div class="slider-row"><label for="phBright" style="font-size:14px;color:var(--muted);min-width:110px">Brightness</label>
+      <input type="range" id="phBright" min="-60" max="60" value="0"><span class="slider-val" id="phBrightVal">0</span></div>
+    <div class="slider-row"><label for="phContrast" style="font-size:14px;color:var(--muted);min-width:110px">Contrast</label>
+      <input type="range" id="phContrast" min="-60" max="80" value="0"><span class="slider-val" id="phContrastVal">0</span></div>
+    <div class="slider-row"><label for="phSat" style="font-size:14px;color:var(--muted);min-width:110px">Colour</label>
+      <input type="range" id="phSat" min="0" max="200" value="100"><span class="slider-val" id="phSatVal">100</span></div>
+    <div class="slider-row"><label for="phSharp" style="font-size:14px;color:var(--muted);min-width:110px">Sharpen</label>
+      <input type="range" id="phSharp" min="0" max="100" value="0"><span class="slider-val" id="phSharpVal">0</span></div>
+
+    <div id="phPhotoBg">
+      <h3>4 — Background</h3>
+      <div class="field">
+        <label for="phBg">Behind the subject</label>
+        <select id="phBg">
+          <option value="keep" selected>leave as it is</option>
+          <option value="white">plain white</option>
+          <option value="lightblue">light blue</option>
+          <option value="blue">blue</option>
+          <option value="grey">light grey</option>
+          <option value="cream">cream</option>
+          <option value="custom">custom colour</option>
+        </select>
+        <input type="color" id="phBgCustom" value="#ffffff" style="width:52px;height:34px;padding:2px">
+      </div>
+      <div class="slider-row"><label for="phTol" style="font-size:14px;color:var(--muted);min-width:110px">How much to take</label>
+        <input type="range" id="phTol" min="10" max="110" value="42"><span class="slider-val" id="phTolVal">42</span></div>
+      <div class="slider-row"><label for="phFeather" style="font-size:14px;color:var(--muted);min-width:110px">Edge softness</label>
+        <input type="range" id="phFeather" min="0" max="6" value="2"><span class="slider-val" id="phFeatherVal">2</span></div>
+      <p class="hint">Works by flooding inward from the edges of the picture, so it needs a reasonably plain wall behind you. Raise <b>how much to take</b> if patches of wall remain; lower it if the hair or shoulders start disappearing.</p>
+    </div>
+
+    <div id="phSignBg" style="display:none">
+      <h3>4 — Ink</h3>
+      <div class="field">
+        <label for="phSigMode">Signature ink</label>
+        <select id="phSigMode">
+          <option value="keep" selected>keep the pen colour</option>
+          <option value="blue">force blue</option>
+          <option value="black">force black</option>
+          <option value="off">do not touch the picture</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="phSigWhite" checked style="accent-color:var(--accent)">put the ink on white paper</label>
+      </div>
+      <div class="slider-row"><label for="phSigCut" style="font-size:14px;color:var(--muted);min-width:130px">Paper removal</label>
+        <input type="range" id="phSigCut" min="0" max="90" value="35"><span class="slider-val" id="phSigCutVal">35</span></div>
+      <div class="slider-row"><label for="phSigInk2" style="font-size:14px;color:var(--muted);min-width:130px">Ink strength</label>
+        <input type="range" id="phSigInk2" min="0" max="95" value="45"><span class="slider-val" id="phSigInk2Val">45</span></div>
+      <p class="hint">Untick "on white paper" for a transparent PNG — useful when the signature is to be placed over something else.</p>
+    </div>
+
+    <h3>5 — Border, name and date</h3>
+    <div class="field">
+      <label for="phBorder">Border</label>
+      <input type="range" id="phBorder" min="0" max="100" value="0" style="width:170px"><span class="slider-val" id="phBorderVal">0</span>
+      <input type="color" id="phBorderCol" value="#ffffff" style="width:52px;height:34px;padding:2px">
+    </div>
+    <div class="field">
+      <label for="phName">Name below</label>
+      <input type="text" id="phName" placeholder="leave empty for none" style="width:240px">
+      <label for="phDate">Date</label>
+      <select id="phDate">
+        <option value="none" selected>no date</option>
+        <option value="below">on its own line</option>
+        <option value="same">beside the name</option>
+      </select>
+      <select id="phDateFmt"><option value="dmy" selected>09-09-2026</option><option value="slash">09/09/2026</option><option value="long">9 September 2026</option></select>
+    </div>
+    <div class="field">
+      <label for="phCapFont">Font</label>
+      <select id="phCapFont">
+        <option value="Helvetica, Arial, sans-serif" selected>Sans</option>
+        <option value="Georgia, 'Times New Roman', serif">Serif</option>
+        <option value="'Courier New', monospace">Typewriter</option>
+        <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+        <option value="Verdana, sans-serif">Verdana</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="phCapBold" checked style="accent-color:var(--accent)">bold</label>
+      <label for="phCapCol">Text</label><input type="color" id="phCapCol" value="#101820" style="width:52px;height:34px;padding:2px">
+      <label for="phCapBg">Strip</label><input type="color" id="phCapBg" value="#ffffff" style="width:52px;height:34px;padding:2px">
+      <label for="phCapAlign">Align</label>
+      <select id="phCapAlign"><option value="center" selected>centre</option><option value="left">left</option><option value="right">right</option></select>
+    </div>
+    <div class="slider-row"><label for="phStrip" style="font-size:14px;color:var(--muted);min-width:130px">Strip height</label>
+      <input type="range" id="phStrip" min="6" max="35" value="14"><span class="slider-val" id="phStripVal">14</span></div>
+    <div class="slider-row"><label for="phCapSize" style="font-size:14px;color:var(--muted);min-width:130px">Text size</label>
+      <input type="range" id="phCapSize" min="30" max="120" value="70"><span class="slider-val" id="phCapSizeVal">70</span></div>
+
+    <h3>6 — The finished picture</h3>
+    <div class="field">
+      <label for="phCopies">Print sheet:</label>
+      <input type="number" id="phCopies" value="8" min="1" max="60" step="1" style="width:74px"><span class="hint" style="margin:0">copies on</span>
+      <select id="phSheet"><option value="4x6" selected>4 × 6 inch</option><option value="5x7">5 × 7 inch</option><option value="a4">A4</option></select>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="phCutMarks" checked style="accent-color:var(--accent)">cut outlines</label>
+    </div>
+    <div id="phOut"></div>
+  </div>
+
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.6_2026-09-09</span>
+    <span>PDF_Toolkit_v3.0_2026-09-09</span>
   </footer>
 </div>
 
@@ -1668,6 +1861,278 @@ function createImposer(PDFLib) {
 }
 
 
+/* ===================== ENGINE: photo and signature ======================= */
+/* ---------------------------------------------------------------
+   Photo and signature engine.
+   Everything runs on a canvas in the browser; the picture never
+   leaves the device. Sizes are worked out from millimetres and DPI
+   so a form asking for "3.5 x 4.5 cm at 300 dpi" and one asking for
+   "350 x 350 pixels" are the same job.
+   --------------------------------------------------------------- */
+function createPhoto() {
+  const MM_PER_INCH = 25.4;
+
+  /* ---------- units ---------- */
+  const toPx = (value, unit, dpi) => {
+    if (unit === "px") return Math.round(value);
+    const inches = unit === "mm" ? value / MM_PER_INCH : (unit === "cm" ? value * 10 / MM_PER_INCH : value);
+    return Math.max(1, Math.round(inches * dpi));
+  };
+  const pxToMm = (px, dpi) => px / dpi * MM_PER_INCH;
+
+  /* ---------- what the common forms ask for ----------
+     Starting points only - always check the notice you are filling in. */
+  const PRESETS = [
+    { id: "custom",     label: "Custom",                              kind: "photo", w: 35,  h: 45,  unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "passport",   label: "Passport / visa  35 x 45 mm",         kind: "photo", w: 35,  h: 45,  unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "sq350",      label: "Square 350 x 350 px",                 kind: "photo", w: 350, h: 350, unit: "px", dpi: 200, maxKB: 300 },
+    { id: "form35x45",  label: "Form photo 3.5 x 4.5 cm, 20-50 KB",   kind: "photo", w: 35,  h: 45,  unit: "mm", dpi: 200, maxKB: 50 },
+    { id: "pan",        label: "PAN style 3.5 x 2.5 cm",              kind: "photo", w: 35,  h: 25,  unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "stamp",      label: "Stamp size 2 x 2.5 cm",               kind: "photo", w: 20,  h: 25,  unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "px200x230",  label: "200 x 230 px",                        kind: "photo", w: 200, h: 230, unit: "px", dpi: 200, maxKB: 0 },
+    { id: "sign4x2",    label: "Signature 4 x 2 cm",                  kind: "sign",  w: 40,  h: 20,  unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "sign140x60", label: "Signature 140 x 60 px, 10-20 KB",     kind: "sign",  w: 140, h: 60,  unit: "px", dpi: 200, maxKB: 20 },
+    { id: "sign35x15",  label: "Signature 3.5 x 1.5 cm",              kind: "sign",  w: 35,  h: 15,  unit: "mm", dpi: 300, maxKB: 0 }
+  ];
+
+  /* ---------- pixel adjustments ---------- */
+  function adjust(data, o) {
+    const d = data.data;
+    const b = (o.brightness || 0) * 2.55;
+    const c = (o.contrast || 0) / 100 + 1;
+    const sat = (o.saturation == null ? 100 : o.saturation) / 100;
+    const gain = o.gain || [1, 1, 1];
+    const inter = 128 * (1 - c);
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i] * gain[0], g = d[i + 1] * gain[1], bl = d[i + 2] * gain[2];
+      r = r * c + inter + b; g = g * c + inter + b; bl = bl * c + inter + b;
+      if (sat !== 1) {
+        const l = 0.299 * r + 0.587 * g + 0.114 * bl;
+        r = l + (r - l) * sat; g = l + (g - l) * sat; bl = l + (bl - l) * sat;
+      }
+      d[i] = r < 0 ? 0 : r > 255 ? 255 : r;
+      d[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
+      d[i + 2] = bl < 0 ? 0 : bl > 255 ? 255 : bl;
+    }
+    return data;
+  }
+
+  /* Grey-world white balance: work out the cast, return per-channel gains. */
+  function whiteBalanceGain(data) {
+    const d = data.data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4 * 7) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    r /= n; g /= n; b /= n;
+    const grey = (r + g + b) / 3;
+    const clamp = v => Math.max(0.75, Math.min(1.35, v));
+    return [clamp(grey / (r || 1)), clamp(grey / (g || 1)), clamp(grey / (b || 1))];
+  }
+
+  /* Auto levels: stretch the 1st-99th percentile of brightness. */
+  function autoLevels(data) {
+    const d = data.data, hist = new Uint32Array(256);
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) { hist[(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0]++; n++; }
+    let lo = 0, hi = 255, acc = 0;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > n * 0.01) { lo = v; break; } }
+    acc = 0;
+    for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > n * 0.01) { hi = v; break; } }
+    const span = Math.max(1, hi - lo);
+    return { brightness: Math.round((-lo / span) * 40), contrast: Math.round(Math.min(45, (255 / span - 1) * 55)) };
+  }
+
+  function sharpen(ctx, w, h, amount) {
+    if (!amount) return;
+    const src = ctx.getImageData(0, 0, w, h);
+    const out = ctx.createImageData(w, h);
+    const s = src.data, o = out.data;
+    const k = amount / 100;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          const cur = s[i + c];
+          if (x === 0 || y === 0 || x === w - 1 || y === h - 1) { o[i + c] = cur; continue; }
+          const around = (s[i - 4 + c] + s[i + 4 + c] + s[i - w * 4 + c] + s[i + w * 4 + c]) / 4;
+          const v = cur + (cur - around) * k * 2;
+          o[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+        }
+        o[i + 3] = s[i + 3];
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+
+  /* ---------- background ----------
+     Flood fill inward from the edges: a plain wall behind the subject
+     comes away, the person does not. */
+  function removeBackground(data, w, h, tolerance, feather) {
+    const d = data.data;
+    const seen = new Uint8Array(w * h);
+    const mask = new Float32Array(w * h);
+    const q = [];
+    const at = (x, y) => (y * w + x) * 4;
+    /* Reference colour for the wall. In a portrait the shoulders usually
+       touch the bottom edge, so the foot of the picture is ignored, and a
+       median is used rather than an average so stray dark pixels on the
+       left and right edges cannot drag the reference towards the subject. */
+    const sr = [], sg = [], sb = [];
+    const sample = (x, y) => { const i = at(x, y); sr.push(d[i]); sg.push(d[i + 1]); sb.push(d[i + 2]); };
+    for (let x = 0; x < w; x++) sample(x, 0);
+    const side = Math.max(1, Math.round(h * 0.6));
+    for (let y = 0; y < side; y++) { sample(0, y); sample(w - 1, y); }
+    const mid = arr => { arr.sort((a, b) => a - b); return arr[arr.length >> 1]; };
+    const rr = mid(sr), gg = mid(sg), bb = mid(sb);
+    const tol2 = tolerance * tolerance * 3;
+    const push = (x, y) => { const p = y * w + x; if (!seen[p]) { seen[p] = 1; q.push(p); } };
+    for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+    for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+    while (q.length) {
+      const p = q.pop(), x = p % w, y = (p / w) | 0, i = p * 4;
+      const dr = d[i] - rr, dg = d[i + 1] - gg, db = d[i + 2] - bb;
+      const dist2 = dr * dr + dg * dg + db * db;
+      if (dist2 > tol2) continue;
+      /* solid inside most of the tolerance, fading only near its edge,
+         so an evenly lit wall comes away completely */
+      const rel = Math.sqrt(dist2 / Math.max(1, tol2));
+      mask[p] = rel <= 0.55 ? 1 : Math.max(0, 1 - (rel - 0.55) / 0.45);
+      if (x > 0) push(x - 1, y);
+      if (x < w - 1) push(x + 1, y);
+      if (y > 0) push(x, y - 1);
+      if (y < h - 1) push(x, y + 1);
+    }
+    /* soften the edge so it does not look cut out with scissors */
+    if (feather > 0) {
+      const tmp = new Float32Array(mask);
+      const r = Math.max(1, Math.round(feather));
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          let sum = 0, cnt = 0;
+          for (let dy = -r; dy <= r; dy += 1) {
+            const yy = y + dy; if (yy < 0 || yy >= h) continue;
+            for (let dx = -r; dx <= r; dx += 1) {
+              const xx = x + dx; if (xx < 0 || xx >= w) continue;
+              sum += tmp[yy * w + xx]; cnt++;
+            }
+          }
+          mask[y * w + x] = sum / cnt;
+        }
+      }
+    }
+    return mask;
+  }
+
+  function paintBackground(data, w, h, mask, colour) {
+    const d = data.data;
+    for (let p = 0; p < w * h; p++) {
+      const a = mask[p];
+      if (a <= 0) continue;
+      const i = p * 4;
+      d[i] = d[i] * (1 - a) + colour[0] * a;
+      d[i + 1] = d[i + 1] * (1 - a) + colour[1] * a;
+      d[i + 2] = d[i + 2] * (1 - a) + colour[2] * a;
+    }
+    return data;
+  }
+
+  /* ---------- retouch: fill a spot from the ring around it ---------- */
+  function healSpot(ctx, w, h, cx, cy, radius) {
+    const r = Math.max(2, radius | 0), r2 = r * r, ro = r + Math.max(2, r >> 1), ro2 = ro * ro;
+    const x0 = Math.max(0, cx - ro), y0 = Math.max(0, cy - ro);
+    const x1 = Math.min(w, cx + ro + 1), y1 = Math.min(h, cy + ro + 1);
+    if (x1 <= x0 || y1 <= y0) return;
+    const bw = x1 - x0, bh = y1 - y0;
+    const img = ctx.getImageData(x0, y0, bw, bh);
+    const d = img.data;
+    let rr = 0, gg = 0, bb = 0, n = 0;
+    for (let y = 0; y < bh; y++) {
+      for (let x = 0; x < bw; x++) {
+        const dx = x0 + x - cx, dy = y0 + y - cy, dist2 = dx * dx + dy * dy;
+        if (dist2 > r2 && dist2 <= ro2) { const i = (y * bw + x) * 4; rr += d[i]; gg += d[i + 1]; bb += d[i + 2]; n++; }
+      }
+    }
+    if (!n) return;
+    rr /= n; gg /= n; bb /= n;
+    for (let y = 0; y < bh; y++) {
+      for (let x = 0; x < bw; x++) {
+        const dx = x0 + x - cx, dy = y0 + y - cy, dist2 = dx * dx + dy * dy;
+        if (dist2 > r2) continue;
+        const t = 1 - Math.sqrt(dist2) / r;          // soft edge
+        const a = Math.min(1, t * 1.6);
+        const i = (y * bw + x) * 4;
+        d[i] = d[i] * (1 - a) + rr * a;
+        d[i + 1] = d[i + 1] * (1 - a) + gg * a;
+        d[i + 2] = d[i + 2] * (1 - a) + bb * a;
+      }
+    }
+    ctx.putImageData(img, x0, y0);
+  }
+
+  /* ---------- writing the resolution into the file ----------
+     A form that asks for 300 DPI wants it recorded in the file, not
+     just implied by the pixel count. */
+  function jpegSetDpi(bytes, dpi) {
+    if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return bytes;
+    /* canvas JPEGs carry a JFIF APP0 right after SOI; patch it in place */
+    if (bytes[2] === 0xFF && bytes[3] === 0xE0) {
+      const out = bytes.slice();
+      out[13] = 1;                                   // units = dots per inch
+      out[14] = (dpi >> 8) & 0xFF; out[15] = dpi & 0xFF;   // x density
+      out[16] = (dpi >> 8) & 0xFF; out[17] = dpi & 0xFF;   // y density
+      return out;
+    }
+    const app0 = new Uint8Array([0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00,
+      0x01, 0x01, 0x01, (dpi >> 8) & 0xFF, dpi & 0xFF, (dpi >> 8) & 0xFF, dpi & 0xFF, 0x00, 0x00]);
+    const out = new Uint8Array(bytes.length + app0.length);
+    out.set(bytes.slice(0, 2), 0);
+    out.set(app0, 2);
+    out.set(bytes.slice(2), 2 + app0.length);
+    return out;
+  }
+
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(buf) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function pngSetDpi(bytes, dpi) {
+    const ppm = Math.round(dpi / MM_PER_INCH * 1000);   // pixels per metre
+    const data = new Uint8Array(13);
+    const dv = new DataView(data.buffer);
+    dv.setUint8(0, 0x70); dv.setUint8(1, 0x48); dv.setUint8(2, 0x59); dv.setUint8(3, 0x73); // "pHYs"
+    dv.setUint32(4, ppm); dv.setUint32(8, ppm); dv.setUint8(12, 1);
+    const chunk = new Uint8Array(12 + 9);
+    const cv = new DataView(chunk.buffer);
+    cv.setUint32(0, 9);
+    chunk.set(data, 4);
+    cv.setUint32(17, crc32(data));
+    /* insert straight after IHDR (8-byte signature + 25-byte IHDR chunk) */
+    const at = 8 + 25;
+    const out = new Uint8Array(bytes.length + chunk.length);
+    out.set(bytes.slice(0, at), 0);
+    out.set(chunk, at);
+    out.set(bytes.slice(at), at + chunk.length);
+    return out;
+  }
+
+  return {
+    MM_PER_INCH, PRESETS, toPx, pxToMm,
+    adjust, whiteBalanceGain, autoLevels, sharpen,
+    removeBackground, paintBackground, healSpot,
+    jpegSetDpi, pngSetDpi, crc32
+  };
+}
+
+
 /* ===================== INTERFACE ========================================== */
 /* eslint-disable no-unused-vars */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1809,7 +2274,7 @@ function drawStrip(parts) {
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 function showTab(name) {
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  ["split", "compress", "organise", "number", "auto"].forEach(t => $("tab-" + t).hidden = (t !== name));
+  ["split", "compress", "organise", "number", "auto", "photo"].forEach(t => $("tab-" + t).hidden = (t !== name));
 }
 
 /* ================================ SPLIT ================================ */
@@ -3547,6 +4012,409 @@ async function runImpose(previewOnly) {
 
 $("btnNupPreview").addEventListener("click", () => runImpose(true));
 $("btnNup").addEventListener("click", () => runImpose(false));
+
+
+/* ========================== PHOTO & SIGNATURE ============================ */
+const PH = createPhoto();
+
+S.photo = { img: null, zoom: 1, offx: 0, offy: 0, angle: 0, quarter: 0, heals: [], out: null };
+
+/* ---- presets ---- */
+(function fillPresets() {
+  const sel = $("phPreset");
+  PH.PRESETS.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p.id; o.textContent = p.label;
+    sel.appendChild(o);
+  });
+  sel.value = "passport";
+})();
+
+$("phPreset").addEventListener("change", () => {
+  const p = PH.PRESETS.find(x => x.id === $("phPreset").value);
+  if (!p) return;
+  if (p.id !== "custom") {
+    $("phW").value = p.w; $("phH").value = p.h; $("phUnit").value = p.unit;
+    $("phDpi").value = p.dpi; $("phMaxKB").value = p.maxKB || "";
+    $("phKind").value = p.kind;
+  }
+  onKindChange();
+  sizeNote(); renderStage(); queueOutput();
+});
+
+["phW", "phH", "phUnit", "phDpi", "phMaxKB", "phMinKB", "phFormat"].forEach(id =>
+  $(id).addEventListener("change", () => { sizeNote(); renderStage(); queueOutput(); }));
+$("phKind").addEventListener("change", () => { onKindChange(); renderStage(); queueOutput(); });
+
+function onKindChange() {
+  const sign = $("phKind").value === "sign";
+  $("phPhotoBg").style.display = sign ? "none" : "";
+  $("phSignBg").style.display = sign ? "" : "none";
+}
+
+function targetPx() {
+  const unit = $("phUnit").value, dpi = +$("phDpi").value || 300;
+  return { w: PH.toPx(+$("phW").value || 35, unit, dpi), h: PH.toPx(+$("phH").value || 45, unit, dpi), dpi };
+}
+
+function sizeNote() {
+  const t = targetPx();
+  $("phSizeNote").innerHTML = "Output will be <b>" + t.w + " \u00d7 " + t.h + " pixels</b> at " + t.dpi +
+    " DPI \u2014 that is " + PH.pxToMm(t.w, t.dpi).toFixed(1) + " \u00d7 " + PH.pxToMm(t.h, t.dpi).toFixed(1) +
+    " mm on paper. The resolution is written into the file, not just implied.";
+}
+sizeNote();
+
+/* ---- loading the picture ---- */
+$("btnPhPick").addEventListener("click", () => $("phInput").click());
+$("phInput").addEventListener("change", ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    S.photo.img = img;
+    S.photo.zoom = 1; S.photo.offx = 0; S.photo.offy = 0; S.photo.angle = 0; S.photo.quarter = 0;
+    S.photo.heals = [];
+    $("phName2").textContent = f.name + " \u00b7 " + img.naturalWidth + "\u00d7" + img.naturalHeight;
+    renderStage(); queueOutput();
+  };
+  img.onerror = () => { $("phOut").innerHTML = "<div class='note bad'>That image could not be read.</div>"; };
+  img.src = URL.createObjectURL(f);
+});
+
+/* ---- drawing the source into a frame of any size ---- */
+function drawSource(ctx, fw, fh) {
+  const p = S.photo, img = p.img;
+  if (!img) return;
+  const q = p.quarter * Math.PI / 2, a = q + (p.angle * Math.PI / 180);
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  /* smallest scale that still covers the frame at this rotation */
+  const c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+  const bw = iw * c + ih * s, bh = iw * s + ih * c;
+  const base = Math.max(fw / bw, fh / bh);
+  const k = base * p.zoom;
+  ctx.save();
+  ctx.translate(fw / 2 + p.offx * fw, fh / 2 + p.offy * fh);
+  ctx.rotate(a);
+  ctx.scale(k, k);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, -iw / 2, -ih / 2);
+  ctx.restore();
+}
+
+/* ---- the crop stage ---- */
+function renderStage() {
+  const cv = $("phStage"), t = targetPx();
+  const maxW = Math.min(340, cv.parentElement.clientWidth || 340);
+  const dispW = maxW, dispH = Math.round(maxW * t.h / t.w);
+  cv.width = dispW; cv.height = dispH;
+  cv.style.width = dispW + "px"; cv.style.height = dispH + "px";
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dispW, dispH);
+  drawSource(ctx, dispW, dispH);
+  if ($("phGuides").checked && $("phKind").value === "photo") {
+    ctx.save();
+    ctx.strokeStyle = "rgba(20,100,109,.75)"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1;
+    ctx.strokeRect(dispW * 0.26, dispH * 0.08, dispW * 0.48, dispH * 0.64);   // head box
+    ctx.beginPath(); ctx.moveTo(0, dispH * 0.34); ctx.lineTo(dispW, dispH * 0.34); ctx.stroke();  // eye line
+    ctx.restore();
+    ctx.fillStyle = "rgba(20,100,109,.75)"; ctx.font = "10px sans-serif";
+    ctx.fillText("eyes on this line, head inside the box", 6, dispH * 0.34 - 5);
+  }
+}
+
+/* pan by dragging, or click to clean a spot */
+(function bindStage() {
+  const cv = $("phStage");
+  let drag = null;
+  cv.addEventListener("pointerdown", ev => {
+    if (!S.photo.img) return;
+    const r = cv.getBoundingClientRect();
+    if ($("phHeal").checked) {
+      const t = targetPx();
+      S.photo.heals.push({
+        x: (ev.clientX - r.left) / r.width, y: (ev.clientY - r.top) / r.height,
+        r: (+$("phHealSize").value) / 100 * t.w / 8
+      });
+      queueOutput();
+      $("phOut").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    drag = { x: ev.clientX, y: ev.clientY, ox: S.photo.offx, oy: S.photo.offy, w: r.width, h: r.height };
+    cv.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+  cv.addEventListener("pointermove", ev => {
+    if (!drag) return;
+    S.photo.offx = drag.ox + (ev.clientX - drag.x) / drag.w;
+    S.photo.offy = drag.oy + (ev.clientY - drag.y) / drag.h;
+    renderStage();
+    ev.preventDefault();
+  });
+  cv.addEventListener("pointerup", () => { if (drag) { drag = null; queueOutput(); } });
+})();
+
+["phZoom", "phStraight"].forEach(id => $(id).addEventListener("input", () => {
+  S.photo.zoom = (+$("phZoom").value) / 100;
+  S.photo.angle = (+$("phStraight").value) / 10;
+  $("phZoomVal").textContent = $("phZoom").value + "%";
+  $("phStraightVal").textContent = (S.photo.angle).toFixed(1) + "\u00b0";
+  renderStage(); queueOutput();
+}));
+$("btnPhRotate").addEventListener("click", () => { S.photo.quarter = (S.photo.quarter + 1) % 4; renderStage(); queueOutput(); });
+$("btnPhCentre").addEventListener("click", () => {
+  S.photo.offx = 0; S.photo.offy = 0; S.photo.zoom = 1; $("phZoom").value = 100; $("phZoomVal").textContent = "100%";
+  renderStage(); queueOutput();
+});
+$("btnPhUndoHeal").addEventListener("click", () => { S.photo.heals.pop(); queueOutput(); });
+$("phGuides").addEventListener("change", renderStage);
+
+/* ---- everything that changes the look ---- */
+["phBright", "phContrast", "phSat", "phSharp", "phTol", "phFeather",
+ "phSigCut", "phSigInk2", "phBorder", "phCapSize", "phStrip"].forEach(id => {
+  const el = $(id); if (!el) return;
+  el.addEventListener("input", () => {
+    const v = $(id + "Val"); if (v) v.textContent = el.value;
+    queueOutput();
+  });
+});
+["phBg", "phBgCustom", "phBorderCol", "phCapFont", "phCapCol", "phCapBg", "phCapAlign",
+ "phName", "phDate", "phDateFmt", "phCapBold", "phSigMode", "phSigWhite", "phAuto"].forEach(id => {
+  const el = $(id); if (el) el.addEventListener("change", queueOutput);
+});
+$("btnPhAuto").addEventListener("click", () => { S.photo.auto = true; queueOutput(); });
+$("btnPhReset").addEventListener("click", () => {
+  S.photo.auto = false; S.photo.heals = [];
+  [["phBright", 0], ["phContrast", 0], ["phSat", 100], ["phSharp", 0], ["phTol", 42], ["phFeather", 2]].forEach(([id, v]) => {
+    $(id).value = v; const t = $(id + "Val"); if (t) t.textContent = v;
+  });
+  queueOutput();
+});
+
+let outTimer = null;
+function queueOutput() { clearTimeout(outTimer); outTimer = setTimeout(buildOutput, 120); }
+
+function bgColour() {
+  const v = $("phBg").value;
+  if (v === "white") return [255, 255, 255];
+  if (v === "lightblue") return [198, 217, 241];
+  if (v === "blue") return [80, 130, 200];
+  if (v === "grey") return [225, 227, 230];
+  if (v === "cream") return [246, 242, 232];
+  const h = $("phBgCustom").value;
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+}
+function hexRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+
+function captionText() {
+  const bits = [];
+  if ($("phName").value.trim()) bits.push($("phName").value.trim());
+  if ($("phDate").value === "none") return bits;
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  const fmt = $("phDateFmt").value;
+  const txt = fmt === "dmy" ? p(d.getDate()) + "-" + p(d.getMonth() + 1) + "-" + d.getFullYear()
+    : fmt === "slash" ? p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear()
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  if ($("phDate").value === "below" && bits.length) bits.push(txt);
+  else if ($("phDate").value === "same" && bits.length) bits[0] = bits[0] + "   " + txt;
+  else bits.push(txt);
+  return bits;
+}
+
+/* ---- build the finished picture ---- */
+async function buildOutput() {
+  const out = $("phOut");
+  if (!S.photo.img) { out.innerHTML = "<div class='note'>Choose a photograph or a signature to begin.</div>"; return; }
+  const t = targetPx();
+  const border = Math.round((+$("phBorder").value) / 100 * Math.min(t.w, t.h) / 12);
+  const lines = captionText();
+  const stripH = lines.length ? Math.round(t.h * (+$("phStrip").value) / 100) : 0;
+  const cw = Math.max(8, t.w - border * 2);
+  const ch = Math.max(8, t.h - border * 2 - stripH);
+
+  /* 1. the picture itself, cropped and scaled */
+  const work = document.createElement("canvas");
+  work.width = cw; work.height = ch;
+  const wctx = work.getContext("2d");
+  wctx.fillStyle = "#fff"; wctx.fillRect(0, 0, cw, ch);
+  drawSource(wctx, cw, ch);
+
+  /* 2. tone */
+  let data = wctx.getImageData(0, 0, cw, ch);
+  let gain = [1, 1, 1], extra = { brightness: 0, contrast: 0 };
+  if (S.photo.auto) { gain = PH.whiteBalanceGain(data); extra = PH.autoLevels(data); }
+  PH.adjust(data, {
+    brightness: (+$("phBright").value) + extra.brightness,
+    contrast: (+$("phContrast").value) + extra.contrast,
+    saturation: +$("phSat").value, gain
+  });
+  wctx.putImageData(data, 0, 0);
+
+  /* 3. background, or ink for a signature */
+  if ($("phKind").value === "sign" && $("phSigMode").value !== "off") {
+    inkKey(wctx, cw, ch);
+  } else if ($("phBg").value !== "keep") {
+    data = wctx.getImageData(0, 0, cw, ch);
+    const mask = PH.removeBackground(data, cw, ch, +$("phTol").value, +$("phFeather").value);
+    PH.paintBackground(data, cw, ch, mask, bgColour());
+    wctx.putImageData(data, 0, 0);
+  }
+
+  /* 4. spots the user clicked away */
+  S.photo.heals.forEach(h => PH.healSpot(wctx, cw, ch, Math.round(h.x * cw), Math.round(h.y * ch), Math.max(3, h.r)));
+
+  /* 5. sharpening last, so it is not undone by the steps above */
+  if (+$("phSharp").value) PH.sharpen(wctx, cw, ch, +$("phSharp").value);
+
+  /* 6. border, caption strip */
+  const fin = document.createElement("canvas");
+  fin.width = t.w; fin.height = t.h;
+  const f = fin.getContext("2d");
+  f.fillStyle = $("phBorderCol").value; f.fillRect(0, 0, t.w, t.h);
+  if (stripH) { f.fillStyle = $("phCapBg").value; f.fillRect(border, t.h - border - stripH, cw, stripH); }
+  f.drawImage(work, border, border);
+  if (stripH) {
+    const size = Math.max(7, Math.round(stripH * (+$("phCapSize").value) / 100));
+    const fam = $("phCapFont").value;
+    f.fillStyle = $("phCapCol").value;
+    f.textBaseline = "middle";
+    const align = $("phCapAlign").value;
+    f.textAlign = align;
+    const x = align === "left" ? border + cw * 0.04 : (align === "right" ? border + cw * 0.96 : border + cw / 2);
+    const per = stripH / lines.length;
+    lines.forEach((ln, i) => {
+      f.font = ($("phCapBold").checked ? "bold " : "") + Math.round(size / Math.max(1, lines.length * 0.85)) + "px " + fam;
+      f.fillText(ln, x, t.h - border - stripH + per * (i + 0.5), cw * 0.94);
+    });
+  }
+
+  /* 7. encode to the file size the form asks for */
+  const fmt = $("phFormat").value;
+  const maxKB = +$("phMaxKB").value || 0, minKB = +$("phMinKB").value || 0;
+  const enc = await encodeSized(fin, fmt, maxKB, minKB, t.dpi);
+  S.photo.out = enc;
+
+  const kb = (enc.bytes.length / 1024).toFixed(1);
+  const okMax = !maxKB || enc.bytes.length <= maxKB * 1024;
+  const okMin = !minKB || enc.bytes.length >= minKB * 1024;
+  out.innerHTML =
+    "<div class='preview'><figure><img src='" + enc.url + "' style='background:#f3f5f6;max-height:420px;width:auto'>" +
+    "<figcaption>" + t.w + "\u00d7" + t.h + " px \u00b7 " + t.dpi + " DPI \u00b7 " + kb + " KB" +
+    (fmt === "jpeg" ? " \u00b7 quality " + Math.round(enc.quality * 100) + "%" : "") + "</figcaption></figure>" +
+    "<figure style='display:flex;align-items:center'><div class='note " + (okMax && okMin ? "good" : "warn") + "' style='margin:0'>" +
+    (okMax && okMin
+      ? "Within the size the form asks for. The pixel count, the DPI and the file size are all as set above."
+      : (!okMax ? "Still over " + maxKB + " KB at the lowest useful quality. Lower the DPI or the pixel size \u2014 file size follows the pixel count far more than the quality setting."
+                : "Under the " + minKB + " KB minimum. Raise the DPI or the pixel size, or switch to PNG, to make the file larger.")) +
+    "</div></figure></div>" +
+    "<div class='btn-row' style='margin-top:12px'><button id='btnPhDl'>Download " + (fmt === "png" ? "PNG" : "JPG") + "</button>" +
+    "<button id='btnPhSheet' class='ghost'>Make a print sheet of copies</button></div>";
+  $("btnPhDl").addEventListener("click", () => {
+    const base = ($("phName").value.trim() || ($("phKind").value === "sign" ? "signature" : "photo")).replace(/\s+/g, "_");
+    saveBlob(new Blob([enc.bytes], { type: fmt === "png" ? "image/png" : "image/jpeg" }),
+      base + "_" + t.w + "x" + t.h + "_" + t.dpi + "dpi." + (fmt === "png" ? "png" : "jpg"));
+  });
+  $("btnPhSheet").addEventListener("click", () => buildSheet(fin, t));
+}
+
+/* signature: keep the ink, drop the paper */
+function inkKey(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h);
+  const px = d.data;
+  const hist = new Uint32Array(256);
+  const lum = new Float32Array(w * h);
+  for (let p = 0, i = 0; p < px.length; p += 4, i++) {
+    const v = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+    lum[i] = v; hist[Math.min(255, v | 0)]++;
+  }
+  const thr = NUM.otsu(hist, w * h);
+  const cut = thr + ((+$("phSigCut").value) / 100) * (255 - thr);
+  const ink = Math.max(0, thr * (1 - (+$("phSigInk2").value) / 100));
+  const span = Math.max(1, cut - ink);
+  const mode = $("phSigMode").value;
+  const forced = mode === "blue" ? [26, 46, 133] : (mode === "black" ? [18, 18, 22] : null);
+  const white = $("phSigWhite").checked;
+  for (let p = 0, i = 0; p < px.length; p += 4, i++) {
+    let a = (cut - lum[i]) / span;
+    a = a <= 0 ? 0 : (a >= 1 ? 1 : a);
+    const col = forced || [px[p], px[p + 1], px[p + 2]];
+    if (white) {                       // ink laid on white paper
+      px[p] = col[0] * a + 255 * (1 - a);
+      px[p + 1] = col[1] * a + 255 * (1 - a);
+      px[p + 2] = col[2] * a + 255 * (1 - a);
+      px[p + 3] = 255;
+    } else {                           // ink on a transparent background
+      px[p] = col[0]; px[p + 1] = col[1]; px[p + 2] = col[2];
+      px[p + 3] = Math.round(a * 255);
+    }
+  }
+  ctx.putImageData(d, 0, 0);
+}
+
+/* Encode, hunting for the quality that lands inside the size the form wants. */
+function canvasBlob(canvas, type, q) {
+  return new Promise(res => canvas.toBlob(b => res(b), type, q));
+}
+async function encodeSized(canvas, fmt, maxKB, minKB, dpi) {
+  const type = fmt === "png" ? "image/png" : "image/jpeg";
+  const stamp = async (blob, q) => {
+    let bytes = new Uint8Array(await blob.arrayBuffer());
+    bytes = fmt === "png" ? PH.pngSetDpi(bytes, dpi) : PH.jpegSetDpi(bytes, dpi);
+    return { bytes, quality: q, url: URL.createObjectURL(new Blob([bytes], { type })) };
+  };
+  if (fmt === "png") return stamp(await canvasBlob(canvas, type, 1), 1);
+
+  let q = 0.92;
+  let best = await canvasBlob(canvas, type, q);
+  if (!maxKB || best.size <= maxKB * 1024) {
+    if (!minKB || best.size >= minKB * 1024) return stamp(best, q);
+  }
+  /* binary search on quality */
+  let lo = 0.25, hi = 0.97, chosen = best, cq = q;
+  for (let i = 0; i < 8; i++) {
+    q = (lo + hi) / 2;
+    const b = await canvasBlob(canvas, type, q);
+    const kb = b.size / 1024;
+    if (maxKB && kb > maxKB) hi = q;
+    else { chosen = b; cq = q; if (minKB && kb < minKB) lo = q; else lo = q; }
+    if (maxKB && minKB && kb <= maxKB && kb >= minKB) { chosen = b; cq = q; break; }
+  }
+  return stamp(chosen, cq);
+}
+
+/* ---- a sheet of copies for the photo shop ---- */
+async function buildSheet(one, t) {
+  const copies = +$("phCopies").value, sheet = $("phSheet").value;
+  const dpi = t.dpi;
+  const dims = sheet === "a4" ? [210, 297] : (sheet === "4x6" ? [152.4, 101.6] : [127, 177.8]);
+  const SW = Math.round(dims[0] / 25.4 * dpi), SH = Math.round(dims[1] / 25.4 * dpi);
+  const gap = Math.round(3 / 25.4 * dpi), margin = Math.round(5 / 25.4 * dpi);
+  const cv = document.createElement("canvas");
+  cv.width = SW; cv.height = SH;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, SW, SH);
+  const cols = Math.max(1, Math.floor((SW - 2 * margin + gap) / (t.w + gap)));
+  let x = margin, y = margin, placed = 0;
+  for (let i = 0; i < copies; i++) {
+    if (x + t.w > SW - margin) { x = margin; y += t.h + gap; }
+    if (y + t.h > SH - margin) break;
+    c.drawImage(one, x, y);
+    if ($("phCutMarks").checked) {
+      c.strokeStyle = "#b9c2c8"; c.lineWidth = 1;
+      c.strokeRect(x + 0.5, y + 0.5, t.w - 1, t.h - 1);
+    }
+    x += t.w + gap; placed++;
+  }
+  const blob = await canvasBlob(cv, "image/jpeg", 0.92);
+  let bytes = new Uint8Array(await blob.arrayBuffer());
+  bytes = PH.jpegSetDpi(bytes, dpi);
+  const name = (sheet === "a4" ? "A4" : sheet) + "_sheet_" + placed + "copies_" + dpi + "dpi.jpg";
+  saveBlob(new Blob([bytes], { type: "image/jpeg" }), name);
+  $("phOut").insertAdjacentHTML("beforeend",
+    "<div class='note good'>Print sheet: " + placed + " copies in a " + cols + "-across layout on " +
+    (sheet === "a4" ? "A4" : sheet.replace("x", " \u00d7 ") + " inch") + " at " + dpi + " DPI" +
+    (placed < copies ? " \u2014 only " + placed + " fitted on the sheet." : ".") + " Print it at 100%, not \u201cfit to page\u201d, or the sizes will be wrong.</div>");
+}
 
 </script>
 </body>
