@@ -7,10 +7,37 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.2_2026-09-09.html
+  File: PDF_Toolkit_v2.3_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v2.3  2026-09-09  Auto-split made much faster, and the split tab can
+        now be driven by eye.
+        SPEED: the scan used to draw every page as an image just to
+        test whether it was blank, and for OCR it drew each whole
+        page and then threw away more than half of it, reading the
+        two bands one after another on a single worker. Now the text
+        layer is read first and decides the rest: a page is only
+        drawn for the blank test if it has almost no text and blank
+        sheets are actually being used as a signal, and OCR runs only
+        on pages with no text at all. For those, just the top and
+        foot bands are drawn rather than the whole page, and the
+        reading is shared across several OCR workers at once, with
+        full layout analysis switched off since a band is one block
+        of text. A page range can also be set, to try the rules on
+        the first few pages before committing to the whole file.
+        Progress now shows a running estimate of the time left, and
+        the summary reports what work was actually done.
+        SPLIT BY EYE: page previews in the split tab, with a "cut
+        here" button on each page marking where a new part begins.
+        Parts are shaded alternately, click any page to see it
+        enlarged and cut from there, and the parts table carries an
+        editable file name for every part, with a name pattern
+        ({prefix}, {n}, {n2}, {first}, {last}, {count}) for the rest.
+        "Show files that will be created" lists the final file names,
+        page ranges and measured sizes before anything is written.
+        The visual cuts and the ranges box stay in step both ways.
 
   v2.2  2026-09-09  Organise tab fixed and extended.
         FIX: the page grid stopped responding after a single click on
@@ -230,6 +257,9 @@
   .modal .bar{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
   .modal .cap{font-family:var(--mono); font-size:13px; color:var(--muted)}
 
+  .card.cutstart{border-left:3px solid var(--warn)}
+  .card .cutbtn{font-size:11.5px; padding:2px 6px; border:1px solid var(--line); border-radius:3px}
+
   /* dragging */
   .card.dragging{opacity:.32}
   .card.drop-here{outline:2px solid var(--accent); outline-offset:2px}
@@ -261,7 +291,7 @@
       <h1>PDF toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.2</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.3</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -343,6 +373,26 @@
       <button id="btnLoad" class="ghost">Reload suggested ranges</button>
     </div>
     <div id="checkOut"></div>
+
+    <h3>Or set the cuts by eye</h3>
+    <p class="hint">Click a page to see it enlarged. Press <b>✂ cut here</b> on the page where a new part should begin — parts are shaded alternately so the split is easy to follow. This and the ranges box above stay in step.</p>
+    <div class="btn-row">
+      <button id="btnSplitThumbs">Load page previews</button>
+      <button id="btnCutsFromBox" class="ghost">Read cuts from the ranges box</button>
+      <button id="btnClearCuts" class="ghost">Clear all cuts</button>
+    </div>
+    <div id="splitGridOut"></div>
+
+    <h3>Parts and file names</h3>
+    <div class="field">
+      <label for="namePattern">Name pattern</label>
+      <input type="text" id="namePattern" value="{prefix}_part{n2}_p{first}-{last}" style="width:330px">
+      <button id="btnApplyPattern" class="small ghost">Apply to all</button>
+    </div>
+    <p class="hint" style="margin-top:-6px">Tokens: <code>{prefix}</code> <code>{n}</code> <code>{n2}</code> (01, 02…) <code>{first}</code> <code>{last}</code> <code>{count}</code>. Any name you type by hand is kept as it is.</p>
+    <div id="partsOut"></div>
+    <div class="btn-row" style="margin-top:14px"><button id="btnPreviewFiles" class="ghost">Show files that will be created</button></div>
+    <div id="filesPreviewOut"></div>
 
     <h3>Split and download</h3>
     <p class="hint">Files are named <code>prefix_part01_p1-12.pdf</code> so the page range shows in the file name.</p>
@@ -497,6 +547,11 @@
           <small>Needed when the pages are photographs of paper with no text inside. Slower — roughly a second or two per page — and it downloads the OCR engine the first time. Only the top and bottom bands of each page are read, which is where headings and page numbers sit.</small>
         </span></label>
     </div>
+    <div class="field">
+      <label for="scanRange">Pages to scan</label>
+      <input type="text" id="scanRange" value="1-end" style="width:150px">
+      <span class="hint" style="margin:0">try <code>1-20</code> first on a long file to check the rules before scanning it all</span>
+    </div>
     <div class="btn-row">
       <button id="btnScan">Scan document</button>
       <button id="btnCancelS" class="ghost" hidden>Stop</button>
@@ -531,7 +586,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.2_2026-09-09</span>
+    <span>PDF_Toolkit_v2.3_2026-09-09</span>
   </footer>
 </div>
 
@@ -1097,8 +1152,8 @@ async function openFile(file) {
 async function setWorking(bytes, name, label) {
   lockAll(true);
   $("dropSub").textContent = name;
-  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
-  S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); if (typeof PREVIEW_CACHE !== "undefined") PREVIEW_CACHE.clear(); S.docs = {}; S.order = []; S.files = [];
+  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut", "splitGridOut", "partsOut", "filesPreviewOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
+  S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); if (S.cuts) S.cuts.clear(); S.partNames = []; S.finalNames = null; if (typeof PREVIEW_CACHE !== "undefined") PREVIEW_CACHE.clear(); S.docs = {}; S.order = []; S.files = [];
 
   progress(0, 1, "Opening the file\u2026");
   let eng, pdoc;
@@ -1262,6 +1317,12 @@ $("btnCheck").addEventListener("click", async () => {
   const parts = await e.sizeRanges(ranges);
   btn.disabled = false; btn.textContent = "Check sizes";
   S.ranges = ranges;
+  S.finalNames = null;
+  if (typeof S.cuts !== "undefined") {
+    const sorted = ranges.slice().sort((a, b) => a[0] - b[0]);
+    S.cuts = new Set(sorted.slice(1).map(r => r[0]));
+    syncNames(ranges); relabelSplitCards(ranges); renderPartsTable(ranges, parts);
+  }
   drawStrip(parts);
   const { missing, dup } = e.coverage(ranges);
   const total = parts.reduce((a, p) => a + p.size, 0);
@@ -1291,7 +1352,7 @@ $("btnSplit").addEventListener("click", async () => {
     btn.textContent = "Writing part " + (i + 1) + " of " + ranges.length + "\u2026";
     await frame();
     const [s, en] = ranges[i];
-    S.files.push({ name: e.fileNameFor(i + 1, s, en, prefix), bytes: await e.build(s, en) });
+    S.files.push({ name: partFileName(i, s, en, prefix), bytes: await e.build(s, en) });
   }
   btn.disabled = false; btn.textContent = "Split now";
   out.innerHTML = "<ul class='files'>" + S.files.map((f, i) =>
@@ -1801,65 +1862,158 @@ function loadScript(src) {
   });
 }
 
+/* ---- scanning helpers ---- */
+
+/* Render only a horizontal band of a page (the top or the foot), instead of
+   drawing the whole page and throwing most of it away. */
+async function renderBand(pdoc, pageNo, scale, y0, y1, gray) {
+  const page = await pdoc.getPage(pageNo);
+  const vp = page.getViewport({ scale });
+  const top = Math.floor(vp.height * y0);
+  const h = Math.max(1, Math.floor(vp.height * (y1 - y0)));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.floor(vp.width)); c.height = h;
+  const ctx = c.getContext("2d", { alpha: false });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, h);
+  await page.render({ canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, 0, -top] }).promise;
+  if (gray) {
+    const d = ctx.getImageData(0, 0, c.width, h), a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const v = (a[i] * 0.299 + a[i + 1] * 0.587 + a[i + 2] * 0.114) | 0;
+      a[i] = a[i + 1] = a[i + 2] = v;
+    }
+    ctx.putImageData(d, 0, 0);
+  }
+  return c;
+}
+
+function fmtTime(sec) {
+  if (!isFinite(sec) || sec < 0) return "";
+  if (sec < 60) return Math.round(sec) + "s";
+  return Math.floor(sec / 60) + "m " + String(Math.round(sec % 60)).padStart(2, "0") + "s";
+}
+
 $("btnScan").addEventListener("click", async () => {
   const e = S.eng, out = $("scanOut"), btn = $("btnScan");
   if (!e) return;
   S.cancel = false;
   btn.disabled = true; $("btnCancelS").hidden = false; out.innerHTML = "";
+  const t0 = performance.now();
 
-  let worker = null;
-  if ($("useOcr").checked) {
-    out.innerHTML = "<div class='note'>Loading the OCR engine\u2026 the first run downloads about 15 MB.</div>";
+  /* which pages to look at at all */
+  const { ranges } = e.parseRanges(($("scanRange").value || "1-end").replace(/end|last/gi, String(e.n)));
+  const inScope = new Set();
+  (ranges.length ? ranges : [[0, e.n]]).forEach(([s, en]) => { for (let p = s; p < en; p++) inScope.add(p); });
+
+  const texts = new Array(e.n).fill("");
+  const inks = new Array(e.n).fill(null);
+  const wantInk = $("rBlank").checked;
+  const wantOcr = $("useOcr").checked;
+
+  /* --- pass 1: the text layer. Costs almost nothing and decides the rest. --- */
+  for (const i of inScope) {
+    if (S.cancel) { finish("cancelled"); return; }
+    const page = await S.pdfjs.getPage(i + 1);
+    texts[i] = textFromContent(await page.getTextContent());
+    if (i % 25 === 0) { progress(i + 1, e.n, "Reading the text layer, page " + (i + 1) + "\u2026"); await frame(); }
+  }
+
+  /* Only pages that could possibly be blank need to be looked at as an image,
+     and only if blank sheets are being used as a signal at all. */
+  const needInk = wantInk ? [...inScope].filter(i => texts[i].replace(/\s/g, "").length < 40) : [];
+  /* Only pages with no usable text need OCR. */
+  const needOcr = wantOcr ? [...inScope].filter(i => texts[i].replace(/\s/g, "").length < 20) : [];
+
+  let scheduler = null, workers = [];
+  if (needOcr.length) {
+    out.innerHTML = "<div class='note'>Starting the OCR engine\u2026 the first run downloads about 15 MB.</div>";
     try {
       if (!window.Tesseract) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js");
-      worker = await Tesseract.createWorker("eng");
+      const cores = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1, Math.ceil(needOcr.length / 2)));
+      scheduler = Tesseract.createScheduler();
+      for (let w = 0; w < cores; w++) {
+        const wk = await Tesseract.createWorker("eng");
+        /* the band is a single block of text, so skip full layout analysis */
+        try { await wk.setParameters({ tessedit_pageseg_mode: "6" }); } catch (err) {}
+        scheduler.addWorker(wk); workers.push(wk);
+      }
+      out.innerHTML = "<div class='note'>OCR running on " + cores + " worker" + (cores > 1 ? "s" : "") + " in parallel.</div>";
     } catch (err) {
       out.innerHTML = "<div class='note warn'>OCR could not be loaded (" + esc(err.message) +
-        "). Carrying on with the text layer only \u2014 if these pages are scans, the detection below will find little.</div>";
-      worker = null;
+        "). Carrying on with the text layer only \u2014 if these pages are scans, little will be found.</div>";
+      scheduler = null;
     }
   }
 
-  const texts = [], inks = [];
+  /* --- pass 2: ink, for the few pages that might be blank --- */
   try {
-    for (let i = 0; i < e.n; i++) {
+    for (let k = 0; k < needInk.length; k++) {
       if (S.cancel) throw new Error("cancelled");
-      const page = await S.pdfjs.getPage(i + 1);
-      let txt = textFromContent(await page.getTextContent());
-      const { canvas } = await renderCanvas(S.pdfjs, i + 1, 0.34, false);
-      inks.push(canvasStats(canvas).ink);
+      const i = needInk[k];
+      const { canvas } = await renderCanvas(S.pdfjs, i + 1, 0.18, false);
+      inks[i] = canvasStats(canvas).ink;
       canvas.width = canvas.height = 1;
+      if (k % 10 === 0) { progress(k + 1, needInk.length, "Checking for blank pages, " + (k + 1) + " of " + needInk.length + "\u2026"); await frame(); }
+    }
 
-      if (worker && txt.replace(/\s/g, "").length < 20) {
-        const { canvas: big } = await renderCanvas(S.pdfjs, i + 1, 1.6, true);
-        const top = crop(big, 0, 0, big.width, Math.floor(big.height * 0.30));
-        const bot = crop(big, 0, Math.floor(big.height * 0.86), big.width, Math.floor(big.height * 0.14));
-        const t1 = (await worker.recognize(top)).data.text;
-        const t2 = (await worker.recognize(bot)).data.text;
-        txt = (t1 || "").trim() + "\n" + (t2 || "").trim();
-        big.width = big.height = 1; top.width = top.height = 1; bot.width = bot.height = 1;
+    /* --- pass 3: OCR, in batches, only the top and foot of each page --- */
+    if (scheduler && needOcr.length) {
+      const BATCH = Math.max(2, workers.length * 2);
+      let done = 0;
+      for (let b = 0; b < needOcr.length; b += BATCH) {
+        if (S.cancel) throw new Error("cancelled");
+        const slice = needOcr.slice(b, b + BATCH);
+        const jobs = [];
+        for (const i of slice) {
+          const top = await renderBand(S.pdfjs, i + 1, 1.4, 0, 0.30, true);
+          const bot = await renderBand(S.pdfjs, i + 1, 1.4, 0.86, 1.0, true);
+          jobs.push(Promise.all([
+            scheduler.addJob("recognize", top),
+            scheduler.addJob("recognize", bot)
+          ]).then(r => {
+            texts[i] = ((r[0].data.text || "").trim() + "\n" + (r[1].data.text || "").trim()).trim();
+            top.width = top.height = 1; bot.width = bot.height = 1;
+          }));
+        }
+        await Promise.all(jobs);
+        done += slice.length;
+        const per = (performance.now() - t0) / done;
+        progress(done, needOcr.length, "OCR " + done + " of " + needOcr.length + " pages\u2026 about " +
+          fmtTime((needOcr.length - done) * per / 1000) + " left");
+        await frame();
       }
-      texts.push(txt);
-      progress(i + 1, e.n, "Scanning page " + (i + 1) + " of " + e.n + (worker ? " (OCR)" : "") + "\u2026");
-      await frame();
     }
   } catch (err) {
-    hideProgress(); btn.disabled = false; $("btnCancelS").hidden = true;
-    if (worker) await worker.terminate();
-    out.innerHTML = "<div class='note " + (err.message === "cancelled" ? "warn" : "bad") + "'>" +
-      (err.message === "cancelled" ? "Scan stopped." : esc(err.message)) + "</div>";
+    finish(err.message === "cancelled" ? "cancelled" : esc(err.message));
     return;
   }
-  if (worker) await worker.terminate();
+
+  await shutdown();
   hideProgress(); btn.disabled = false; $("btnCancelS").hidden = true;
 
   S.pageText = texts; S.ink = inks;
-  const q = DET.textQuality(texts);
+  const q = DET.textQuality(texts.filter((t, i) => inScope.has(i)));
   const blanks = DET.blankPages(texts, inks);
-  out.innerHTML = "<div class='note " + (q.ratio > 0.6 ? "good" : "warn") + "'>Scanned " + q.n + " pages. Readable text found on <b>" +
-    q.withText + "</b> of them (about " + q.avgChars + " characters a page)." +
-    (q.ratio < 0.6 && !$("useOcr").checked ? " That is low \u2014 tick <b>Read scanned pages with OCR</b> and scan again for a reliable result." : "") +
-    "</div>" + (blanks.length ? "<div class='note'>Blank sheets detected at page " + blanks.map(i => i + 1).join(", ") + ".</div>" : "");
+  const secs = (performance.now() - t0) / 1000;
+  out.innerHTML = "<div class='note " + (q.ratio > 0.6 ? "good" : "warn") + "'>Scanned " + inScope.size + " pages in " + fmtTime(secs) +
+    ". Readable text found on <b>" + q.withText + "</b> of them (about " + q.avgChars + " characters a page)." +
+    (q.ratio < 0.6 && !wantOcr ? " That is low \u2014 tick <b>Read scanned pages with OCR</b> and scan again for a reliable result." : "") +
+    "</div>" +
+    "<div class='note'>Work actually done: text layer on " + inScope.size + " pages" +
+    (needInk.length ? ", blank check on " + needInk.length : ", no blank check needed") +
+    (needOcr.length ? ", OCR on " + needOcr.length + " pages" : ", no OCR needed") + ".</div>" +
+    (blanks.length ? "<div class='note'>Blank sheets detected at page " + blanks.map(i => i + 1).join(", ") + ".</div>" : "");
+
+  async function shutdown() {
+    if (scheduler) { try { await scheduler.terminate(); } catch (err) {} }
+    workers = [];
+  }
+  async function finish(msg) {
+    await shutdown();
+    hideProgress(); btn.disabled = false; $("btnCancelS").hidden = true;
+    out.innerHTML = "<div class='note " + (msg === "cancelled" ? "warn" : "bad") + "'>" +
+      (msg === "cancelled" ? "Scan stopped. Nothing was changed." : msg) + "</div>";
+  }
 });
 
 function crop(canvas, x, y, w, h) {
@@ -1898,6 +2052,9 @@ $("btnDetect").addEventListener("click", () => {
     const drop = $("rDrop").checked ? DET.blankPages(S.pageText, S.ink) : [];
     const ranges = DET.rangesFromCuts(cuts, S.eng.n, drop);
     S.ranges = ranges;
+    S.finalNames = null;
+    S.cuts = new Set(ranges.slice(1).map(r => r[0]));
+    syncNames(ranges);
     S.suggested = ranges.map(r => (r[0] + 1) + "-" + r[1]).join(", ");
     $("rangeBox").value = S.suggested;
     const parts = await S.eng.sizeRanges(ranges);
@@ -2004,6 +2161,236 @@ function closePreview() {
   document.removeEventListener("keydown", keyNav);
   if (previewState && previewState.box) previewState.box.remove();
   previewState = null;
+}
+
+
+/* ========================= VISUAL SPLIT BUILDER ========================== */
+/* Cut points are page indices where a new part begins (page 1 always starts
+   part 1). They stay in step with the ranges box, both ways. */
+S.cuts = new Set();
+S.partNames = [];            // [{custom:bool, value:string}]
+let sizeTimer = null;
+
+function currentParts() {
+  const ranges = DET.rangesFromCuts([...S.cuts], S.eng.n, []);
+  return ranges;
+}
+
+function sanitise(name) {
+  return String(name).replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "part";
+}
+
+function defaultName(pos, s, e) {
+  const prefix = ($("inPrefix").value || "").trim() || S.eng.stem;
+  const pat = $("namePattern").value || "{prefix}_part{n2}_p{first}-{last}";
+  return sanitise(pat
+    .replace(/\{prefix\}/g, prefix)
+    .replace(/\{n2\}/g, String(pos + 1).padStart(2, "0"))
+    .replace(/\{n\}/g, String(pos + 1))
+    .replace(/\{first\}/g, String(s + 1))
+    .replace(/\{last\}/g, String(e))
+    .replace(/\{count\}/g, String(e - s)));
+}
+
+/* Names follow the parts unless the user has typed one in. */
+function syncNames(ranges) {
+  ranges.forEach(([s, e], pos) => {
+    const cur = S.partNames[pos];
+    if (!cur || !cur.custom) S.partNames[pos] = { custom: false, value: defaultName(pos, s, e) };
+  });
+  S.partNames.length = ranges.length;
+}
+
+/* Cuts changed -> update the ranges box, the strip, the cards and the table. */
+function cutsChanged(measure) {
+  const ranges = currentParts();
+  S.ranges = ranges;
+  S.suggested = ranges.map(r => (r[0] + 1) + "-" + r[1]).join(", ");
+  $("rangeBox").value = S.suggested;
+  syncNames(ranges);
+  relabelSplitCards(ranges);
+  renderPartsTable(ranges, null);
+  if (measure !== false) {
+    clearTimeout(sizeTimer);
+    sizeTimer = setTimeout(async () => {
+      const parts = await S.eng.sizeRanges(ranges);
+      drawStrip(parts);
+      renderPartsTable(ranges, parts);
+    }, 350);
+  }
+}
+
+/* ---- the page grid ---- */
+$("btnSplitThumbs").addEventListener("click", () => renderSplitGrid());
+$("btnClearCuts").addEventListener("click", () => { S.cuts.clear(); cutsChanged(); });
+$("btnCutsFromBox").addEventListener("click", () => {
+  const { ranges, errors } = S.eng.parseRanges($("rangeBox").value);
+  if (!ranges.length) { $("partsOut").innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "Nothing to read.") + "</div>"; return; }
+  const sorted = ranges.slice().sort((a, b) => a[0] - b[0]);
+  const gapless = sorted.every((r, i) => (i === 0 ? r[0] === 0 : r[0] === sorted[i - 1][1])) &&
+    sorted[sorted.length - 1][1] === S.eng.n;
+  S.cuts = new Set(sorted.slice(1).map(r => r[0]));
+  cutsChanged();
+  if (!gapless) $("partsOut").insertAdjacentHTML("afterbegin",
+    "<div class='note warn'>Those ranges skipped or repeated pages. The visual builder can only show parts that run straight through, so the cuts have been fitted to the nearest whole split. Use the ranges box directly if you need to leave pages out.</div>");
+});
+
+let splitGridBound = false;
+
+async function renderSplitGrid() {
+  const out = $("splitGridOut"), e = S.eng;
+  if (!e) return;
+  out.innerHTML = "<div class='note' id='splitNote'></div><div class='grid' id='splitGrid'></div>";
+  const grid = $("splitGrid");
+  for (let i = 0; i < e.n; i++) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.i = String(i);
+    card.innerHTML = "<div class='ph'>page " + (i + 1) + "</div>" +
+      "<div class='lbl'>p" + (i + 1) + " \u00b7 <b class='inpart'></b></div>" +
+      "<div class='acts'><button class='cutbtn' data-i='" + i + "'>\u2702 cut here</button></div>";
+    grid.appendChild(card);
+    thumb("main", i).then(url => {
+      if (!url || !card.firstChild) return;
+      const img = document.createElement("img");
+      img.src = url; img.alt = "page " + (i + 1); img.draggable = false;
+      img.style.cssText = "width:100%;height:112px;object-fit:contain;background:var(--paper);border:1px solid var(--line);display:block";
+      card.replaceChild(img, card.firstChild);
+    });
+    if (i % 16 === 15) await frame();
+  }
+  if (!splitGridBound) { bindSplitGrid(out); splitGridBound = true; }
+  cutsChanged();
+}
+
+function bindSplitGrid(container) {
+  container.addEventListener("click", ev => {
+    const btn = ev.target.closest(".cutbtn");
+    const card = ev.target.closest(".card");
+    if (!card) return;
+    const i = +card.dataset.i;
+    if (btn) {
+      if (i === 0) return;                       // part 1 always starts at page 1
+      if (S.cuts.has(i)) S.cuts.delete(i); else S.cuts.add(i);
+      cutsChanged();
+      return;
+    }
+    /* a click on the page itself opens it enlarged, with the cut toggle inside */
+    const items = Array.from({ length: S.eng.n }, (_, p) => ({ k: "main", i: p, rot: 0 }));
+    openPreview(items, i, {
+      caption: it => {
+        const ranges = currentParts();
+        const pos = ranges.findIndex(r => it.i >= r[0] && it.i < r[1]);
+        const nm = S.partNames[pos] ? S.partNames[pos].value : "";
+        return "page " + (it.i + 1) + " of " + S.eng.n + "  \u00b7  in part " + (pos + 1) + "  \u00b7  " + nm + ".pdf";
+      },
+      action: {
+        label: it => it.i === 0 ? "Page 1 always starts part 1"
+          : (S.cuts.has(it.i) ? "Remove this cut" : "Start a new part here"),
+        run: it => {
+          if (it.i === 0) return;
+          if (S.cuts.has(it.i)) S.cuts.delete(it.i); else S.cuts.add(it.i);
+          cutsChanged();
+        }
+      }
+    });
+  });
+}
+
+function relabelSplitCards(ranges) {
+  const grid = $("splitGrid"); if (!grid) return;
+  const partOf = new Array(S.eng.n).fill(0);
+  ranges.forEach(([s, e], pos) => { for (let p = s; p < e; p++) partOf[p] = pos; });
+  [...grid.children].forEach(card => {
+    const i = +card.dataset.i;
+    const b = card.querySelector(".inpart");
+    if (b) {
+      b.textContent = "part " + (partOf[i] + 1);
+      b.style.color = partOf[i] % 2 ? "var(--accent-2)" : "var(--accent)";
+    }
+    card.classList.toggle("ins", partOf[i] % 2 === 1);
+    card.classList.toggle("cutstart", S.cuts.has(i));
+    const btn = card.querySelector(".cutbtn");
+    if (btn) {
+      const isCut = S.cuts.has(i);
+      btn.textContent = i === 0 ? "\u2702 starts part 1" : (isCut ? "\u2702 cut \u2713" : "\u2702 cut here");
+      btn.style.background = isCut ? "var(--accent)" : "var(--panel)";
+      btn.style.color = isCut ? "#fff" : "var(--accent)";
+    }
+  });
+  const note = $("splitNote");
+  if (note) note.innerHTML = "<b>" + ranges.length + (ranges.length === 1 ? " part" : " parts") +
+    "</b> \u2014 click a page to see it enlarged, or press <b>\u2702 cut here</b> on the page where a new part should begin. " +
+    "Shading alternates so each part is easy to see.";
+}
+
+/* ---- the parts table, with an editable name per part ---- */
+function renderPartsTable(ranges, parts) {
+  const out = $("partsOut");
+  const rows = ranges.map(([s, e], pos) => {
+    const size = parts ? human(parts[pos].size) : "<span style='color:var(--muted)'>measuring\u2026</span>";
+    return "<tr><td class='num'>" + (pos + 1) + "</td>" +
+      "<td class='range'>" + (s + 1) + "\u2013" + e + "</td>" +
+      "<td class='num'>" + (e - s) + "</td>" +
+      "<td class='num'>" + size + "</td>" +
+      "<td><input type='text' class='pname' data-pos='" + pos + "' value='" + esc(S.partNames[pos].value) +
+      "' style='width:100%; min-width:180px'>" + (S.partNames[pos].custom ? "" : "") + "</td></tr>";
+  }).join("");
+  out.innerHTML = "<div class='scroll'><table><thead><tr><th class='num'>Part</th><th>Pages</th>" +
+    "<th class='num'>Count</th><th class='num'>Size</th><th>File name (without .pdf)</th></tr></thead><tbody>" +
+    rows + "</tbody></table></div>" +
+    "<div class='note'>Type over any name to set your own. Names you do not touch follow the pattern above and update themselves when the cuts change.</div>";
+  out.querySelectorAll(".pname").forEach(inp => {
+    inp.addEventListener("change", () => {
+      S.partNames[+inp.dataset.pos] = { custom: true, value: sanitise(inp.value) };
+      inp.value = S.partNames[+inp.dataset.pos].value;
+    });
+  });
+}
+
+$("btnApplyPattern").addEventListener("click", () => {
+  S.partNames = S.partNames.map(() => null).filter(() => false);   // drop custom names
+  S.partNames = [];
+  cutsChanged();
+});
+
+/* ---- the final check before splitting ---- */
+$("btnPreviewFiles").addEventListener("click", async () => {
+  const out = $("filesPreviewOut"), e = S.eng;
+  let ranges = S.ranges && S.ranges.length ? S.ranges : e.parseRanges($("rangeBox").value).ranges;
+  if (!ranges.length) { out.innerHTML = "<div class='note bad'>No parts yet. Mark cuts on the pages, or type ranges in the box.</div>"; return; }
+  syncNames(ranges);
+  out.innerHTML = "<div class='note'>Measuring each file\u2026</div>";
+  const parts = await e.sizeRanges(ranges);
+  drawStrip(parts);
+
+  const seen = {}, names = [];
+  ranges.forEach((r, pos) => {
+    let nm = S.partNames[pos].value;
+    if (seen[nm.toLowerCase()]) { nm = nm + "_" + (seen[nm.toLowerCase()] + 1); }
+    seen[S.partNames[pos].value.toLowerCase()] = (seen[S.partNames[pos].value.toLowerCase()] || 0) + 1;
+    names.push(nm);
+  });
+  S.finalNames = names;
+
+  const total = parts.reduce((a, p) => a + p.size, 0);
+  const { missing, dup } = e.coverage(ranges);
+  out.innerHTML =
+    "<ul class='files'>" + ranges.map((r, pos) =>
+      "<li><span class='fname'>" + esc(names[pos]) + ".pdf</span>" +
+      "<span class='fsize'>pages " + (r[0] + 1) + "\u2013" + r[1] + " \u00b7 " + (r[1] - r[0]) + "p \u00b7 " + human(parts[pos].size) + "</span></li>").join("") +
+    "</ul>" +
+    "<div class='note good'><b>" + ranges.length + " files will be created</b>, " + human(total) + " in total, from a working file of " + human(e.fileSize) + ".</div>" +
+    (missing.length ? "<div class='note warn'>Pages in no file: " + listShort(missing) + "</div>" : "") +
+    (dup.length ? "<div class='note warn'>Pages in more than one file: " + listShort(dup) + "</div>" : "") +
+    "<div class='note'>Press <b>Split now</b> below to write them.</div>";
+});
+
+/* The names decided here are what the splitter writes. */
+function partFileName(pos, s, e, prefix) {
+  if (S.finalNames && S.finalNames[pos]) return S.finalNames[pos] + ".pdf";
+  if (S.partNames && S.partNames[pos]) return S.partNames[pos].value + ".pdf";
+  return S.eng.fileNameFor(pos + 1, s, e, prefix);
 }
 
 
