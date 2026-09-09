@@ -3,14 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PDF Toolkit — split, compress, organise</title>
+<title>PDF Toolkit — split, compress, organise, number</title>
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.0_2026-09-09.html
+  File: PDF_Toolkit_v2.1_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v2.1  2026-09-09  NUMBER PAGES workbench added. Writes a small
+        pencil-style number at a corner of every page, the way
+        originals are numbered by hand before filing. The digits are
+        drawn as strokes, not type, with a slight lean and wobble so
+        they read as handwriting; nothing is downloaded for them.
+        The number is drawn as ink on top of the page - the scan is
+        never re-encoded, so quality is untouched and the file grows
+        by only a few KB. Blank pages are left unnumbered: every page
+        is shown as a preview with a "blank" tick box, and a
+        "suggest blank pages" button pre-ticks the ones that measure
+        as empty. Numbering continues across a skipped page, or
+        counts it, as you choose. Start number, corner, margins in
+        mm, size, stroke weight, pencil/pen colour and the wobble are
+        all adjustable, with a close-up of the result before you
+        commit. Placement is correct on pages saved rotated 90, 180
+        or 270 degrees. Also: when a compression estimate comes out
+        larger than the original, the tool now names the fix
+        (lower the resolution) instead of only reporting the number.
 
   v2.0  2026-09-09  Three new workbenches added to the splitter, all
         working on one shared "working file" so the output of one can
@@ -206,9 +225,9 @@
   <header class="masthead">
     <div>
       <h1>PDF toolkit</h1>
-      <p>Split by size, compress, reorganise pages, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
+      <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.0</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.1</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -251,6 +270,7 @@
     <button role="tab" data-tab="split"    aria-selected="true">Split by size</button>
     <button role="tab" data-tab="compress" aria-selected="false">Compress</button>
     <button role="tab" data-tab="organise" aria-selected="false">Organise pages</button>
+    <button role="tab" data-tab="number"   aria-selected="false">Number pages</button>
     <button role="tab" data-tab="auto"     aria-selected="false">Auto-split</button>
   </div>
 
@@ -379,6 +399,58 @@
     <div id="orgOut"></div>
   </div>
 
+  <!-- ---------- NUMBER PAGES ---------- -->
+  <div class="panel" id="tab-number" hidden data-locked="true">
+    <h2>Number the pages by hand</h2>
+    <p class="hint">Writes a small pencil-style number at a corner of each page — the same numbering you pencil onto the originals before filing. The digits are drawn as ink on top of the page, so the scan itself is never re-encoded: no loss of quality, and the file grows by only a few KB. Blank pages are left out.</p>
+
+    <h3>Step A — mark the pages that should stay blank</h3>
+    <div class="btn-row">
+      <button id="btnNumPreview">Load page previews</button>
+      <button id="btnSuggestBlank" class="ghost">Suggest blank pages</button>
+      <button id="btnClearSkip" class="ghost">Clear all ticks</button>
+    </div>
+    <div id="numGridOut"></div>
+
+    <h3>Step B — how the number should look</h3>
+    <div class="field">
+      <label for="numStart">Start from</label>
+      <input type="number" id="numStart" value="1" min="0" step="1" style="width:90px">
+      <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="numConsume" style="accent-color:var(--accent)">a blank page still uses up its number</label>
+    </div>
+    <div class="field">
+      <label for="numCorner">Corner</label>
+      <select id="numCorner">
+        <option value="top-left" selected>top left</option>
+        <option value="top-right">top right</option>
+        <option value="bottom-left">bottom left</option>
+        <option value="bottom-right">bottom right</option>
+      </select>
+      <label for="numMx">from edge</label>
+      <input type="number" id="numMx" value="10" min="0" step="1" style="width:80px">
+      <span class="hint" style="margin:0">mm across</span>
+      <input type="number" id="numMy" value="10" min="0" step="1" style="width:80px">
+      <span class="hint" style="margin:0">mm down</span>
+    </div>
+    <div class="field">
+      <label for="numSize">Size</label>
+      <input type="number" id="numSize" value="11" min="5" max="40" step="1" style="width:80px">
+      <span class="hint" style="margin:0">pt</span>
+      <label for="numStroke">Stroke</label>
+      <input type="number" id="numStroke" value="0.9" min="0.3" max="3" step="0.1" style="width:80px">
+      <label for="numColour">Ink</label>
+      <select id="numColour">
+        <option value="pencil" selected>pencil grey</option>
+        <option value="dark pencil">dark pencil</option>
+        <option value="blue pen">blue pen</option>
+        <option value="red pen">red pen</option>
+      </select>
+      <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="numJitter" checked style="accent-color:var(--accent)">handwritten wobble</label>
+    </div>
+    <div class="btn-row"><button id="btnNumApply">Apply numbering</button></div>
+    <div id="numOut"></div>
+  </div>
+
   <!-- ---------- AUTO-SPLIT ---------- -->
   <div class="panel" id="tab-auto" hidden data-locked="true">
     <h2>Auto-split where a new document starts</h2>
@@ -425,7 +497,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.0_2026-09-09</span>
+    <span>PDF_Toolkit_v2.1_2026-09-09</span>
   </footer>
 </div>
 
@@ -809,6 +881,144 @@ function createDetector() {
 }
 
 
+/* ===================== ENGINE: handwritten page numbering ================= */
+/* ---------------------------------------------------------------
+   Pencil-style page numbering.
+   Digits are drawn as hand-shaped strokes (not a font), so nothing
+   has to be downloaded and the page keeps its original quality -
+   the number is added as vector ink on top of the existing page.
+   --------------------------------------------------------------- */
+function createNumberer(PDFLib) {
+
+  /* Each digit is a stroke path in a 10 wide x 14 tall box, y downward,
+     drawn slightly irregularly so it reads as handwriting, not type. */
+  const GLYPH = {
+    "0": "M5.1 1.3 C2.7 1.4 1.5 4.1 1.5 7.1 C1.5 10.3 2.8 13.0 5.2 12.9 C7.5 12.8 8.6 10.0 8.5 7.0 C8.4 4.0 7.4 1.2 5.1 1.3",
+    "1": "M2.5 4.3 C3.5 3.5 4.6 2.5 5.4 1.3 L5.1 12.8",
+    "2": "M1.7 4.3 C2.1 2.3 3.9 1.2 5.6 1.3 C7.4 1.4 8.6 2.9 8.2 4.6 C7.7 6.9 4.1 8.7 1.6 12.7 L8.7 12.4",
+    "3": "M2.0 2.7 C3.5 1.1 6.6 0.9 7.8 2.7 C8.7 4.0 7.3 6.0 4.9 6.6 C7.6 6.4 9.2 8.1 8.6 10.3 C8.1 12.4 4.7 13.6 2.1 12.0",
+    "4": "M6.9 12.8 L7.0 1.5 L1.2 9.8 L9.0 9.6",
+    "5": "M8.0 1.5 L2.9 1.7 L2.2 6.5 C4.4 5.2 7.6 5.9 8.3 8.3 C9.0 10.7 6.7 13.3 2.9 12.3",
+    "6": "M7.9 1.6 C4.6 2.5 2.0 5.3 1.8 8.9 C1.7 11.7 3.5 13.2 5.5 13.0 C7.5 12.8 8.7 11.2 8.5 9.2 C8.3 7.2 6.5 6.2 4.7 6.7 C3.4 7.0 2.3 8.0 1.9 9.1",
+    "7": "M1.5 1.7 L8.7 1.4 C6.6 5.0 4.7 8.7 4.0 12.9",
+    "8": "M5.2 6.7 C3.1 6.0 2.1 4.6 2.5 3.2 C3.0 1.7 4.6 1.0 5.9 1.3 C7.3 1.5 8.3 2.7 7.9 4.1 C7.5 5.5 6.0 6.4 4.5 7.0 C2.7 7.8 1.5 9.1 1.9 10.8 C2.3 12.5 4.3 13.4 6.1 12.9 C7.9 12.5 8.9 10.9 8.4 9.3 C8.1 8.1 6.7 7.2 5.2 6.7",
+    "9": "M8.2 6.3 C7.6 4.2 5.3 3.4 3.5 4.4 C1.9 5.4 1.7 7.7 3.2 8.9 C4.7 10.0 7.0 9.4 8.0 7.6 C8.8 6.2 8.6 4.0 7.6 2.6 C6.7 1.4 5.3 1.0 4.1 1.4 M8.2 6.3 C8.5 9.1 7.2 11.7 4.3 13.0"
+  };
+  const ADVANCE = { "1": 6.4, default: 8.5 };
+  const BOX_H = 14;                       // glyph box height in glyph units
+  const MM = 72 / 25.4;                   // millimetres -> points
+
+  /* Repeatable "randomness" so the same file always stamps the same way. */
+  function rng(seed) {
+    let s = seed >>> 0 || 1;
+    return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  }
+
+  /* Where the number sits, allowing for a page that is set to display rotated.
+     mx, my are measured from the corner the user picked, in the view they see. */
+  function place(corner, rot, W, H, mx, my) {
+    /* First convert the chosen corner into a top-left offset in view space. */
+    const viewW = (rot === 90 || rot === 270) ? H : W;
+    const viewH = (rot === 90 || rot === 270) ? W : H;
+    let vx = mx, vy = my;
+    if (corner === "top-right") vx = viewW - mx;
+    else if (corner === "bottom-left") vy = viewH - my;
+    else if (corner === "bottom-right") { vx = viewW - mx; vy = viewH - my; }
+
+    /* Then map view coordinates onto the page's own coordinate system. */
+    switch (rot) {
+      case 90:  return { x: vy, y: vx, rotate: 90 };
+      case 180: return { x: W - vx, y: vy, rotate: 180 };
+      case 270: return { x: W - vy, y: H - vx, rotate: -90 };
+      default:  return { x: vx, y: H - vy, rotate: 0 };
+    }
+  }
+
+  /* Draw one number on one page. */
+  function stampPage(page, text, opt, rand) {
+    const rot = ((page.getRotation().angle % 360) + 360) % 360;
+    const { width: W, height: H } = page.getSize();
+    const scale = opt.sizePt / BOX_H;                     // glyph units -> points
+    const mx = opt.marginXmm * MM, my = opt.marginYmm * MM;
+    const spot = place(opt.corner, rot, W, H, mx, my);
+
+    const jit = opt.jitter ? 1 : 0;
+    const baseTilt = jit * (rand() * 5 - 2.5);            // whole number leans a little
+    const colour = PDFLib.rgb(opt.colour[0], opt.colour[1], opt.colour[2]);
+
+    let cursor = 0;
+    for (const ch of String(text)) {
+      const path = GLYPH[ch];
+      if (!path) { cursor += ADVANCE.default; continue; }
+      const dx = cursor + jit * (rand() * 0.5 - 0.25);
+      const dy = jit * (rand() * 0.7 - 0.35);
+      const tilt = baseTilt + jit * (rand() * 6 - 3);     // each digit tilts its own way
+      const sc = scale * (1 + jit * (rand() * 0.10 - 0.05));
+
+      /* Shift along the writing direction, which depends on the page rotation. */
+      const rad = spot.rotate * Math.PI / 180;
+      const ux = Math.cos(rad), uy = Math.sin(rad);        // along the line of writing
+      const dnx = Math.sin(rad), dny = -Math.cos(rad);     // downwards on the written line
+      const x = spot.x + (dx * scale) * ux + (dy * scale) * dnx;
+      const y = spot.y + (dx * scale) * uy + (dy * scale) * dny;
+
+      page.drawSvgPath(path, {
+        x, y,
+        scale: sc,
+        rotate: PDFLib.degrees(spot.rotate + tilt),
+        borderColor: colour,
+        borderWidth: opt.strokePt,
+        borderLineCap: PDFLib.LineCapStyle ? PDFLib.LineCapStyle.Round : undefined,
+        opacity: 0,
+        borderOpacity: opt.opacity == null ? 1 : opt.opacity
+      });
+      cursor += (ADVANCE[ch] || ADVANCE.default);
+    }
+  }
+
+  /* Which number each page receives. skip = Set of 0-based pages to leave blank.
+     countSkipped=false means a skipped page does not use up a number. */
+  function planNumbers(n, skip, start, countSkipped) {
+    const out = [];
+    let next = start;
+    for (let i = 0; i < n; i++) {
+      if (skip.has(i)) { out.push(null); if (countSkipped) next++; }
+      else { out.push(next); next++; }
+    }
+    return out;
+  }
+
+  /* Stamp a whole document. doc = pdf-lib PDFDocument (modified in place). */
+  function stampAll(doc, numbers, opt) {
+    const rand = rng(opt.seed || 20260909);
+    const pages = doc.getPages();
+    numbers.forEach((num, i) => {
+      if (num == null || !pages[i]) return;
+      stampPage(pages[i], String(num), opt, rand);
+    });
+    return doc;
+  }
+
+  const DEFAULTS = {
+    corner: "top-left",
+    marginXmm: 10, marginYmm: 10,
+    sizePt: 11, strokePt: 0.9,
+    colour: [0.30, 0.32, 0.36],       // pencil grey
+    opacity: 0.95,
+    jitter: true, seed: 20260909
+  };
+
+  const COLOURS = {
+    pencil: [0.30, 0.32, 0.36],
+    "dark pencil": [0.18, 0.19, 0.22],
+    "blue pen": [0.10, 0.18, 0.52],
+    "red pen": [0.60, 0.10, 0.12]
+  };
+
+  return { GLYPH, DEFAULTS, COLOURS, planNumbers, stampAll, stampPage, place, rng };
+}
+
+
 /* ===================== INTERFACE ========================================== */
 /* eslint-disable no-unused-vars */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -853,8 +1063,8 @@ async function openFile(file) {
 async function setWorking(bytes, name, label) {
   lockAll(true);
   $("dropSub").textContent = name;
-  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
-  S.pageText = null; S.ink = null; S.thumbs.clear(); S.docs = {}; S.order = []; S.files = [];
+  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
+  S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); S.docs = {}; S.order = []; S.files = [];
 
   progress(0, 1, "Opening the file\u2026");
   let eng, pdoc;
@@ -887,7 +1097,7 @@ async function setWorking(bytes, name, label) {
 }
 
 function lockAll(on) {
-  ["tab-split", "tab-compress", "tab-organise", "tab-auto"].forEach(id => $(id).dataset.locked = on ? "true" : "false");
+  ["tab-split", "tab-compress", "tab-organise", "tab-number", "tab-auto"].forEach(id => $(id).dataset.locked = on ? "true" : "false");
 }
 function progress(i, n, label) {
   $("progWrap").hidden = false; $("progLabel").hidden = false;
@@ -950,7 +1160,7 @@ function drawStrip(parts) {
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 function showTab(name) {
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  ["split", "compress", "organise", "auto"].forEach(t => $("tab-" + t).hidden = (t !== name));
+  ["split", "compress", "organise", "number", "auto"].forEach(t => $("tab-" + t).hidden = (t !== name));
 }
 
 /* ================================ SPLIT ================================ */
@@ -1227,6 +1437,7 @@ $("btnEstimate").addEventListener("click", async () => {
     (cut >= 0 ? "\u2014 about " + cut.toFixed(0) + "% smaller than " + human(e.rewriteSize)
               : "\u2014 that is <b>larger</b> than the present " + human(e.rewriteSize) + ", so this setting is not worth applying") +
     ".<br>Estimated from " + idx.length + " sample pages (pages " + idx.map(i => i + 1).join(", ") + "), so the real figure will differ a little. The size after compressing is measured exactly.</div>" +
+    (cut < 0 ? "<div class='note warn'><b>What to change:</b> a page redrawn as a picture has a size floor set by its pixel count, so pulling the quality slider lower saves almost nothing and only smears the lettering. Lower the <b>resolution</b> instead \u2014 size falls with the square of the DPI, so 150 \u2192 72 DPI is roughly four times smaller \u2014 and put quality back up to 70\u201380%. On a PDF that already holds real text, the honest answer is usually not to compress at all.</div>" : "") +
     "<div class='preview'>" +
       "<figure><img src='" + beforeUrl + "' alt='page before compression'><figcaption>Before \u2014 page " + (mid + 1) + "</figcaption></figure>" +
       "<figure><img src='" + afterUrl + "' alt='page after compression'><figcaption>After \u2014 quality " + Math.round(set.q * 100) + "%, " + set.dpi + " DPI" + (set.gray ? ", greyscale" : "") + "</figcaption></figure>" +
@@ -1545,6 +1756,161 @@ $("btnPageTable").addEventListener("click", () => {
       "<td class='snip'>" + esc(p.printed ? p.printed.where : "\u2014") + "</td>" +
       "<td class='num'>" + p.chars + "</td><td class='num'>" + (p.ink == null ? "\u2014" : Math.round(p.ink * 100) + "%") + "</td></tr>").join("") +
     "</tbody></table></div>";
+});
+
+
+/* ============================== NUMBER PAGES ============================= */
+const NUM = createNumberer(PDFLib);
+S.skip = new Set();
+
+function numOptions() {
+  return Object.assign({}, NUM.DEFAULTS, {
+    corner: $("numCorner").value,
+    marginXmm: parseFloat($("numMx").value) || 10,
+    marginYmm: parseFloat($("numMy").value) || 10,
+    sizePt: parseFloat($("numSize").value) || 11,
+    strokePt: parseFloat($("numStroke").value) || 0.9,
+    colour: NUM.COLOURS[$("numColour").value] || NUM.COLOURS.pencil,
+    jitter: $("numJitter").checked
+  });
+}
+function numberPlan() {
+  const start = parseInt($("numStart").value, 10);
+  return NUM.planNumbers(S.eng.n, S.skip, isNaN(start) ? 1 : start, $("numConsume").checked);
+}
+
+$("btnNumPreview").addEventListener("click", () => renderNumGrid());
+$("btnClearSkip").addEventListener("click", () => { S.skip.clear(); renderNumGrid(); });
+["numStart", "numConsume"].forEach(id => $(id).addEventListener("change", refreshNumLabels));
+
+async function renderNumGrid() {
+  const out = $("numGridOut"), e = S.eng;
+  if (!e) return;
+  out.innerHTML = "<div class='note' id='numNote'>Loading page previews\u2026</div><div class='grid' id='numGrid'></div>";
+  const grid = $("numGrid");
+  for (let i = 0; i < e.n; i++) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.i = String(i);
+    card.innerHTML = "<div class='ph'>page " + (i + 1) + "</div>" +
+      "<div class='lbl'>p" + (i + 1) + " \u2192 <b class='willget'>\u2014</b></div>" +
+      "<div class='acts'><label style='font-size:11.5px; display:flex; align-items:center; gap:4px; cursor:pointer'>" +
+      "<input type='checkbox' class='skipbox' data-i='" + i + "' style='accent-color:var(--accent)'>blank</label></div>";
+    grid.appendChild(card);
+    thumb("main", i).then(url => {
+      if (!url) return;
+      const img = document.createElement("img");
+      img.src = url; img.alt = "page " + (i + 1);
+      img.style.cssText = "width:100%;height:112px;object-fit:contain;background:var(--paper);border:1px solid var(--line);display:block";
+      if (card.firstChild) card.replaceChild(img, card.firstChild);
+    });
+    if (i % 12 === 11) await frame();
+  }
+  grid.querySelectorAll(".skipbox").forEach(b => {
+    b.checked = S.skip.has(+b.dataset.i);
+    b.addEventListener("change", () => {
+      if (b.checked) S.skip.add(+b.dataset.i); else S.skip.delete(+b.dataset.i);
+      refreshNumLabels();
+    });
+  });
+  refreshNumLabels();
+}
+
+function refreshNumLabels() {
+  const grid = $("numGrid"); if (!grid) return;
+  const plan = numberPlan();
+  grid.querySelectorAll(".card").forEach(card => {
+    const i = +card.dataset.i;
+    const b = card.querySelector(".willget");
+    if (!b) return;
+    b.textContent = plan[i] == null ? "blank" : String(plan[i]);
+    b.style.color = plan[i] == null ? "var(--muted)" : "var(--accent)";
+    card.style.opacity = plan[i] == null ? ".55" : "1";
+  });
+  const numbered = plan.filter(x => x != null);
+  const note = $("numNote");
+  if (note) note.innerHTML = "<b>" + numbered.length + " pages will be numbered</b>" +
+    (numbered.length ? " \u2014 " + numbered[0] + " to " + numbered[numbered.length - 1] : "") +
+    ", " + (plan.length - numbered.length) + " left blank. Tick <b>blank</b> under any page that should not get a number.";
+}
+
+$("btnSuggestBlank").addEventListener("click", async () => {
+  const e = S.eng, btn = $("btnSuggestBlank");
+  if (!e) return;
+  btn.disabled = true; btn.textContent = "Checking\u2026";
+  if (!S.ink) {
+    const inks = [];
+    for (let i = 0; i < e.n; i++) {
+      const { canvas } = await renderCanvas(S.pdfjs, i + 1, 0.34, false);
+      inks.push(canvasStats(canvas).ink);
+      canvas.width = canvas.height = 1;
+      progress(i + 1, e.n, "Looking at page " + (i + 1) + " of " + e.n + "\u2026");
+      await frame();
+    }
+    hideProgress();
+    S.ink = inks;
+  }
+  const blanks = DET.blankPages(new Array(e.n).fill(""), S.ink);
+  blanks.forEach(i => S.skip.add(i));
+  btn.disabled = false; btn.textContent = "Suggest blank pages";
+  await renderNumGrid();
+  $("numOut").innerHTML = blanks.length
+    ? "<div class='note good'>Ticked " + blanks.length + " page(s) that look blank: " + blanks.map(i => i + 1).join(", ") +
+      ". Check them in the previews above \u2014 a page with only a faint stamp can look blank to the measurement.</div>"
+    : "<div class='note'>No blank pages found. Tick any by hand if needed.</div>";
+});
+
+$("btnNumApply").addEventListener("click", async () => {
+  const e = S.eng, out = $("numOut"), btn = $("btnNumApply");
+  if (!e) return;
+  const plan = numberPlan();
+  const count = plan.filter(x => x != null).length;
+  if (!count) { out.innerHTML = "<div class='note bad'>Every page is ticked as blank \u2014 nothing to number.</div>"; return; }
+
+  btn.disabled = true; btn.textContent = "Numbering\u2026"; out.innerHTML = ""; await frame();
+  let bytes;
+  try {
+    const doc = await PDFLib.PDFDocument.load(S.bytes.slice(), { ignoreEncryption: true });
+    NUM.stampAll(doc, plan, numOptions());
+    bytes = await doc.save({ useObjectStreams: true });
+  } catch (err) {
+    btn.disabled = false; btn.textContent = "Apply numbering";
+    out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>"; return;
+  }
+  btn.disabled = false; btn.textContent = "Apply numbering";
+
+  /* show the real result: the first numbered page, plus a close-up of the corner */
+  const firstNumbered = plan.findIndex(x => x != null);
+  let full = "", close = "";
+  try {
+    const pj = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+    const { canvas } = await renderCanvas(pj, firstNumbered + 1, 110 / 72, false);
+    full = canvas.toDataURL("image/jpeg", 0.8);
+    const cw = Math.floor(canvas.width * 0.42), ch = Math.floor(canvas.height * 0.20);
+    const corner = $("numCorner").value;
+    const cx = corner.includes("right") ? canvas.width - cw : 0;
+    const cy = corner.includes("bottom") ? canvas.height - ch : 0;
+    const cr = crop(canvas, cx, cy, cw, ch);
+    close = cr.toDataURL("image/png");
+    canvas.width = canvas.height = 1; cr.width = cr.height = 1;
+    pj.destroy();
+  } catch (err) { /* preview is optional */ }
+
+  const grew = bytes.length - e.fileSize;
+  const fname = e.stem + "_numbered.pdf";
+  out.innerHTML =
+    "<div class='note good'><b>Numbered " + count + " pages</b> (" + plan.filter(x => x != null)[0] + " to " +
+    plan.filter(x => x != null).slice(-1)[0] + "), " + (plan.length - count) + " left blank. " +
+    "File is now " + human(bytes.length) + " \u2014 " + (grew >= 0 ? "only " + human(grew) + " larger" : human(-grew) + " smaller") +
+    ", because the number is drawn as ink and the scan is untouched.</div>" +
+    (close ? "<div class='preview'>" +
+      "<figure><img src='" + close + "' alt='close-up of the number'><figcaption>Close-up \u2014 page " + (firstNumbered + 1) + ", number " + plan[firstNumbered] + "</figcaption></figure>" +
+      "<figure><img src='" + full + "' alt='whole page'><figcaption>Whole page</figcaption></figure></div>" : "") +
+    "<div class='btn-row' style='margin-top:12px'><button id='btnDlN'>Download " + esc(fname) + "</button>" +
+    "<button id='btnUseN' class='ghost'>Use as working file</button></div>" +
+    "<div class='note'>If the number sits over the text or too far in, change the margins and apply again \u2014 each run starts from the working file, so numbers never stack up.</div>";
+  $("btnDlN").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  $("btnUseN").addEventListener("click", async () => { await setWorking(bytes, fname, "numbered " + count + "p"); showTab("split"); });
 });
 
 </script>
