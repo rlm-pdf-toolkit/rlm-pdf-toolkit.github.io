@@ -7,10 +7,29 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.5_2026-09-09.html
+  File: PDF_Toolkit_v2.6_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v2.6  2026-09-09  SEVERAL PAGES ON ONE SHEET added to the compress
+        tab, and it runs on its own - nothing is compressed unless
+        you also compress.
+        2, 4, 6, 8 or 9 pages to a sheet. The sheet shape is chosen
+        by trying both portrait and landscape and keeping whichever
+        gives each page more room, or it can be forced. Gap between
+        pages and the sheet margin are in mm, the reading order can
+        run across or down, and a faint outline can be drawn round
+        each page.
+        It can be applied to the whole file or to a page range, with
+        the pages outside that range carried through untouched and in
+        place - so pages 5 to 12 can be put four to a sheet while the
+        rest of the document stays as it is.
+        Pages are placed as they are, not redrawn as pictures, so
+        text stays text and a scan keeps its resolution. pdf-lib
+        drops a page's saved rotation when embedding it, so the
+        rotation is reapplied here: a bundle holding sideways scans
+        comes out looking the way the reader sees it.
 
   v2.5  2026-09-09  SIGNATURE added to the numbering and stamping tab.
         A photograph or scan of a signature is turned into ink on a
@@ -336,7 +355,7 @@
       <h1>PDF toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.5</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.6</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -482,6 +501,49 @@
       <button id="btnCancelC" class="ghost" hidden>Stop</button>
     </div>
     <div id="compressOut"></div>
+
+    <h3 style="margin-top:26px">Fit several pages on one sheet</h3>
+    <p class="hint">Puts 2, 4, 6, 8 or 9 pages onto each sheet — for a reading copy, a file annexure or to save paper when printing. This is separate from compression: pages are placed as they are, so text stays text and a scan keeps its resolution.</p>
+    <div class="field">
+      <label for="nupPer">Pages per sheet</label>
+      <select id="nupPer">
+        <option value="2">2</option>
+        <option value="4" selected>4</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+      </select>
+      <label for="nupSheet">Sheet shape</label>
+      <select id="nupSheet">
+        <option value="auto" selected>whichever fits best</option>
+        <option value="portrait">portrait</option>
+        <option value="landscape">landscape</option>
+        <option value="source">same as the original page</option>
+      </select>
+      <label for="nupOrder">Reading order</label>
+      <select id="nupOrder">
+        <option value="across" selected>across, then down</option>
+        <option value="down">down, then across</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="nupGap">Gap between pages</label>
+      <input type="number" id="nupGap" value="4" min="0" max="30" step="1" style="width:76px"><span class="hint" style="margin:0">mm</span>
+      <label for="nupMargin">Sheet margin</label>
+      <input type="number" id="nupMargin" value="6" min="0" max="40" step="1" style="width:76px"><span class="hint" style="margin:0">mm</span>
+      <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="nupBorder" style="accent-color:var(--accent)">outline each page</label>
+    </div>
+    <div class="field">
+      <label for="nupPages">Apply to</label>
+      <input type="text" id="nupPages" value="all" style="width:180px">
+      <span class="hint" style="margin:0"><code>all</code>, or a range such as <code>5-12</code></span>
+      <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="nupKeep" checked style="accent-color:var(--accent)">leave the other pages as they are</label>
+    </div>
+    <div class="btn-row">
+      <button id="btnNupPreview" class="ghost">Preview the first sheet</button>
+      <button id="btnNup">Apply layout</button>
+    </div>
+    <div id="nupOut"></div>
   </div>
 
   <!-- ---------- ORGANISE ---------- -->
@@ -789,7 +851,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.5_2026-09-09</span>
+    <span>PDF_Toolkit_v2.6_2026-09-09</span>
   </footer>
 </div>
 
@@ -1472,6 +1534,137 @@ function createNumberer(PDFLib) {
            planNumbers, stampAll, stampPage, place, placeView, drawStamp, drawImageAt,
            otsu, frameBox, expandTokens, unsupported, rng };
 
+}
+
+
+/* ===================== ENGINE: several pages per sheet ==================== */
+/* ---------------------------------------------------------------
+   Imposition: several pages placed on one sheet.
+   The pages are embedded as they are, not redrawn as pictures, so
+   text stays text and a scan keeps its full resolution.
+   --------------------------------------------------------------- */
+function createImposer(PDFLib) {
+  const MM = 72 / 25.4;
+
+  const GRID_LANDSCAPE = { 2: [2, 1], 4: [2, 2], 6: [3, 2], 8: [4, 2], 9: [3, 3], 16: [4, 4] };
+  const GRID_PORTRAIT  = { 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4], 9: [3, 3], 16: [4, 4] };
+
+  /* What the reader sees, allowing for a page saved rotated. */
+  function viewSize(page) {
+    const rot = ((page.getRotation().angle % 360) + 360) % 360;
+    const { width, height } = page.getSize();
+    return (rot === 90 || rot === 270) ? { w: height, h: width, rot } : { w: width, h: height, rot };
+  }
+
+  /* pdf-lib drops a page's saved rotation when it embeds it, so put it back. */
+  function drawEmbedded(sheet, em, rot, X, Y, s) {
+    const w = em.width * s, h = em.height * s;
+    if (rot === 90)       sheet.drawPage(em, { x: X,     y: Y + w, xScale: s, yScale: s, rotate: PDFLib.degrees(-90) });
+    else if (rot === 180) sheet.drawPage(em, { x: X + w, y: Y + h, xScale: s, yScale: s, rotate: PDFLib.degrees(180) });
+    else if (rot === 270) sheet.drawPage(em, { x: X + h, y: Y,     xScale: s, yScale: s, rotate: PDFLib.degrees(90) });
+    else                  sheet.drawPage(em, { x: X,     y: Y,     xScale: s, yScale: s });
+  }
+
+  /* How well a given sheet shape fits: returns the scale each page gets. */
+  function fitScale(per, sheetW, sheetH, pw, ph, gap, margin, landscapeGrid) {
+    const g = (landscapeGrid ? GRID_LANDSCAPE : GRID_PORTRAIT)[per] || GRID_LANDSCAPE[4];
+    const cols = g[0], rows = g[1];
+    const cw = (sheetW - 2 * margin - gap * (cols - 1)) / cols;
+    const ch = (sheetH - 2 * margin - gap * (rows - 1)) / rows;
+    if (cw <= 0 || ch <= 0) return { scale: 0, cols, rows, cw, ch };
+    return { scale: Math.min(cw / pw, ch / ph), cols, rows, cw, ch };
+  }
+
+  /* opts: per, sheetMode(auto|portrait|landscape|source), gapMm, marginMm,
+           order(across|down), border, selected(Set of 0-based) or null=all,
+           keepOthers */
+  async function impose(srcBytes, opts, onProgress) {
+    const doc = await PDFLib.PDFDocument.load(srcBytes, { ignoreEncryption: true });
+    const out = await PDFLib.PDFDocument.create();
+    const pages = doc.getPages();
+    const n = pages.length;
+    const per = opts.per || 4;
+    const gap = (opts.gapMm == null ? 4 : opts.gapMm) * MM;
+    const margin = (opts.marginMm == null ? 6 : opts.marginMm) * MM;
+    const sel = opts.selected;
+    const inSel = i => !sel || sel.has(i);
+
+    /* the sheet is based on the first selected page */
+    let base = null;
+    for (let i = 0; i < n; i++) if (inSel(i)) { base = viewSize(pages[i]); break; }
+    if (!base) throw new Error("No pages selected.");
+
+    /* choose the sheet shape that gives each page the most room */
+    let sheetW, sheetH, landscapeGrid;
+    const portraitSheet = { w: Math.min(base.w, base.h), h: Math.max(base.w, base.h) };
+    const landscapeSheet = { w: portraitSheet.h, h: portraitSheet.w };
+    if (opts.sheetMode === "portrait") { sheetW = portraitSheet.w; sheetH = portraitSheet.h; landscapeGrid = false; }
+    else if (opts.sheetMode === "landscape") { sheetW = landscapeSheet.w; sheetH = landscapeSheet.h; landscapeGrid = true; }
+    else if (opts.sheetMode === "source") { sheetW = base.w; sheetH = base.h; landscapeGrid = base.w >= base.h; }
+    else {
+      const a = fitScale(per, portraitSheet.w, portraitSheet.h, base.w, base.h, gap, margin, false);
+      const b = fitScale(per, landscapeSheet.w, landscapeSheet.h, base.w, base.h, gap, margin, true);
+      if (b.scale > a.scale) { sheetW = landscapeSheet.w; sheetH = landscapeSheet.h; landscapeGrid = true; }
+      else { sheetW = portraitSheet.w; sheetH = portraitSheet.h; landscapeGrid = false; }
+    }
+    const geo = fitScale(per, sheetW, sheetH, base.w, base.h, gap, margin, landscapeGrid);
+    const { cols, rows, cw, ch } = geo;
+
+    /* walk the document in order: impose runs of selected pages, pass the rest through */
+    const chunks = [];
+    let run = [];
+    for (let i = 0; i < n; i++) {
+      if (inSel(i)) { run.push(i); if (run.length === per) { chunks.push({ type: "sheet", idx: run }); run = []; } }
+      else {
+        if (run.length) { chunks.push({ type: "sheet", idx: run }); run = []; }
+        if (opts.keepOthers !== false) chunks.push({ type: "copy", idx: [i] });
+      }
+    }
+    if (run.length) chunks.push({ type: "sheet", idx: run });
+
+    for (let c = 0; c < chunks.length; c++) {
+      const ch2 = chunks[c];
+      if (ch2.type === "copy") {
+        const [pg] = await out.copyPages(doc, ch2.idx);
+        out.addPage(pg);
+      } else {
+        const list = ch2.idx.map(i => pages[i]);
+        const embeds = await out.embedPages(list);
+        const sheet = out.addPage([sheetW, sheetH]);
+        embeds.forEach((em, k) => {
+          const v = viewSize(list[k]);
+          const s = Math.min(cw / v.w, ch / v.h);
+          const slot = opts.order === "down"
+            ? { c: Math.floor(k / rows), r: k % rows }
+            : { c: k % cols, r: Math.floor(k / cols) };
+          const X = margin + slot.c * (cw + gap) + (cw - v.w * s) / 2;
+          const Y = sheetH - margin - (slot.r + 1) * ch - slot.r * gap + (ch - v.h * s) / 2;
+          if (opts.border) {
+            sheet.drawRectangle({
+              x: margin + slot.c * (cw + gap),
+              y: sheetH - margin - (slot.r + 1) * ch - slot.r * gap,
+              width: cw, height: ch,
+              borderWidth: 0.4, borderColor: PDFLib.rgb(0.72, 0.75, 0.78)
+            });
+          }
+          drawEmbedded(sheet, em, v.rot, X, Y, s);
+        });
+      }
+      if (onProgress) await onProgress(c + 1, chunks.length);
+    }
+
+    const bytes = await out.save({ useObjectStreams: true });
+    return {
+      bytes,
+      sheets: out.getPageCount(),
+      cols, rows,
+      sheetW, sheetH,
+      scale: geo.scale,
+      imposed: chunks.filter(x => x.type === "sheet").reduce((a, x) => a + x.idx.length, 0)
+    };
+  }
+
+  return { impose, GRID_LANDSCAPE, GRID_PORTRAIT, viewSize };
 }
 
 
@@ -3280,6 +3473,80 @@ function signatureOptions() {
     blend: $("sigBlend").value
   };
 }
+
+
+/* ========================= SEVERAL PAGES PER SHEET ======================== */
+const IMP = createImposer(PDFLib);
+
+function imposeOptions() {
+  const spec = ($("nupPages").value || "all").trim().toLowerCase();
+  const sel = (spec === "all" || !spec) ? null : new Set(pagesFromSpec(spec, S.eng.n));
+  return {
+    per: parseInt($("nupPer").value, 10) || 4,
+    sheetMode: $("nupSheet").value,
+    gapMm: parseFloat($("nupGap").value) || 0,
+    marginMm: parseFloat($("nupMargin").value) || 0,
+    order: $("nupOrder").value,
+    border: $("nupBorder").checked,
+    selected: sel,
+    keepOthers: $("nupKeep").checked
+  };
+}
+
+async function runImpose(previewOnly) {
+  const e = S.eng, out = $("nupOut");
+  if (!e) return;
+  const btn = previewOnly ? $("btnNupPreview") : $("btnNup");
+  const o = imposeOptions();
+  if (o.selected && !o.selected.size) { out.innerHTML = "<div class='note bad'>No pages match that range.</div>"; return; }
+
+  btn.disabled = true; btn.textContent = "Working\u2026"; out.innerHTML = ""; await frame();
+  let res;
+  try {
+    res = await IMP.impose(S.bytes.slice(), o, async (k, n) => {
+      progress(k, n, "Laying out sheet " + k + " of " + n + "\u2026");
+      if (k % 4 === 0) await frame();
+    });
+  } catch (err) {
+    hideProgress(); btn.disabled = false;
+    btn.textContent = previewOnly ? "Preview the first sheet" : "Apply layout";
+    out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>";
+    return;
+  }
+  hideProgress(); btn.disabled = false;
+  btn.textContent = previewOnly ? "Preview the first sheet" : "Apply layout";
+
+  let shot = "";
+  try {
+    const pj = await pdfjsLib.getDocument({ data: res.bytes.slice() }).promise;
+    const { canvas } = await renderCanvas(pj, 1, 90 / 72, false);
+    shot = canvas.toDataURL("image/jpeg", 0.82);
+    canvas.width = canvas.height = 1;
+    pj.destroy();
+  } catch (err) { /* the picture is optional */ }
+
+  const grew = res.bytes.length - e.fileSize;
+  const fname = e.stem + "_" + o.per + "up.pdf";
+  out.innerHTML =
+    "<div class='note good'><b>" + e.n + " pages \u2192 " + res.sheets + " sheets</b> \u00b7 " + o.per +
+    " to a sheet in a " + res.cols + "\u00d7" + res.rows + " grid \u00b7 each page shown at " + Math.round(res.scale * 100) + "% of its size \u00b7 sheet " +
+    Math.round(res.sheetW / (72 / 25.4)) + "\u00d7" + Math.round(res.sheetH / (72 / 25.4)) + " mm.</div>" +
+    (shot ? "<div class='preview'><figure><img src='" + shot + "' alt='first sheet'><figcaption>First sheet</figcaption></figure>" +
+      "<figure style='display:flex;align-items:center'><div class='note' style='margin:0'>Pages are placed as they are, not redrawn as pictures \u2014 text stays text and a scan keeps its full resolution. " +
+      "That is why the file is now " + human(res.bytes.length) + (grew > 0 ? ", a little larger than " + human(e.fileSize) +
+      ": fewer sheets, but each page's resources are carried into the new file. If you need it smaller, take this as the working file and then compress it." : "") +
+      "</div></figure></div>" : "") +
+    "<div class='btn-row' style='margin-top:12px'><button id='btnDlNup'>Download " + esc(fname) + "</button>" +
+    "<button id='btnUseNup' class='ghost'>Use as working file</button></div>";
+  $("btnDlNup").addEventListener("click", () => saveBlob(new Blob([res.bytes], { type: "application/pdf" }), fname));
+  $("btnUseNup").addEventListener("click", async () => {
+    await setWorking(res.bytes, fname, o.per + "-up, " + res.sheets + " sheets");
+    showTab("compress");
+  });
+}
+
+$("btnNupPreview").addEventListener("click", () => runImpose(true));
+$("btnNup").addEventListener("click", () => runImpose(false));
 
 </script>
 </body>
