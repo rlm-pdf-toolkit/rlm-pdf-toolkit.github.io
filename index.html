@@ -7,10 +7,31 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Photo_Toolkit_v3.1_2026-09-09.html
+  File: PDF_Photo_Toolkit_v3.2_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v3.2  2026-09-09  Two faults reported from use on a phone.
+        FIXED - the face was squeezed. A border, and a name/date
+        strip, take their space out of the finished file, so the part
+        left for the photograph is no longer the shape the form asked
+        for. The crop box was still being held to the shape of the
+        whole file, so the picture was drawn into a shorter space and
+        the face was compressed from top to bottom - worse the taller
+        the strip. The crop box now follows the shape of the picture
+        area itself and reshapes the moment a border is added, a
+        strip is resized, or a name or date is typed. Nothing is
+        squashed; a little more of the picture is cropped away
+        instead, which is visible in the crop box before saving.
+        FIXED - the phone layout. The tab strip now scrolls sideways
+        instead of squeezing every tab into a few pixels, sliders and
+        buttons are sized for a thumb, and no control runs off the
+        screen. In the photo editor the crop now sits full width in
+        the flow and only the finished picture follows you down the
+        page, as a compact bar across the top - the earlier two
+        half-width cards were unusable on a phone. Desktop-site mode
+        should no longer be needed.
 
   v3.1  2026-09-09  Photo editor reworked after use.
         CROP: there is now a real crop rectangle. The whole picture is
@@ -289,6 +310,7 @@
 
   /* tabs */
   .tabs{display:flex; gap:2px; margin:26px 0 0; flex-wrap:wrap; border-bottom:1px solid var(--line)}
+  .tabs button{flex:0 0 auto; white-space:nowrap}
   .tabs button{background:transparent; color:var(--muted); border:1px solid transparent; border-bottom:none; border-radius:5px 5px 0 0; padding:10px 16px; font-weight:600; font-size:14.5px}
   .tabs button:hover{color:var(--ink); background:#E6EBEE}
   .tabs button[aria-selected="true"]{background:var(--panel); color:var(--accent); border-color:var(--line); margin-bottom:-1px}
@@ -372,13 +394,18 @@
   .photo-card{border:1px solid var(--line); border-radius:5px; padding:10px; background:var(--panel)}
   .photo-card-h{font-size:12.5px; color:var(--muted); margin-bottom:8px; font-weight:600}
   @media (max-width:860px){
-    .photo-wrap{flex-direction:column}
-    .photo-side{position:sticky; top:0; z-index:6; flex:1 1 auto; width:100%; background:var(--panel);
-      padding:8px 0 10px; border-bottom:1px solid var(--line)}
-    .photo-side .photo-card{display:inline-block; vertical-align:top; width:49%; padding:6px}
-    .photo-side .photo-card+.photo-card{margin-top:0 !important; margin-left:1.5%}
-    #phStage{max-height:180px}
-    #phOut img{max-height:150px !important}
+    /* On a phone the crop sits full width in the flow, and only the finished
+       picture follows you down the page, as a compact bar. */
+    .photo-wrap{flex-direction:column; gap:12px}
+    .photo-side{position:static; flex:1 1 auto; width:100%}
+    .photo-side .photo-card{width:100%}
+    #phResultCard{position:sticky; top:0; z-index:6; background:var(--panel);
+      box-shadow:0 3px 10px rgba(16,28,38,.10)}
+    #phOut{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap}
+    #phOut img{max-height:92px !important; width:auto; margin:0 !important}
+    #phOut > div{margin:0 !important}
+    #phOut .note{flex-basis:100%}
+    #phStage{max-height:230px}
   }
 
   /* enlarged preview */
@@ -403,6 +430,25 @@
   footer span{font-family:var(--mono)}
 
   @media (max-width:620px){
+    /* the tab strip scrolls sideways rather than shrinking to nothing */
+    .tabs{flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+      scrollbar-width:none; margin:20px -14px 0; padding:0 14px}
+    .tabs::-webkit-scrollbar{display:none}
+    .tabs button{padding:11px 14px; font-size:14px}
+    /* controls sized for a thumb, and nothing wider than the screen */
+    .slider-row{gap:8px}
+    .slider-row label{min-width:0 !important}
+    input[type=range]{width:100%; flex:1 1 140px; height:26px}
+    .slider-val{min-width:52px; font-size:16px}
+    input[type=number]{min-width:64px}
+    select{max-width:100%}
+    .field{gap:8px; margin-bottom:12px}
+    .field label{font-size:13.5px}
+    .btn-row{gap:8px}
+    button{padding:10px 14px}
+    button.small{padding:8px 12px}
+    button.tiny{padding:6px 10px; font-size:12.5px}
+    h3{margin:18px 0 8px}
     .wrap{padding:22px 14px 56px}
     h1{font-size:24px}
     section.step,.panel{padding:16px 14px}
@@ -422,7 +468,7 @@
       <h1>PDF &amp; photo toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v3.1</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v3.2</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -945,7 +991,7 @@
           </div>
         </div>
 
-        <div class="photo-card" style="margin-top:10px">
+        <div class="photo-card" id="phResultCard" style="margin-top:10px">
           <div class="photo-card-h">Finished picture</div>
           <div id="phOut"><div class="hint" style="text-align:center">The finished picture appears here as you work.</div></div>
         </div>
@@ -1096,7 +1142,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Photo_Toolkit_v3.1_2026-09-09</span>
+    <span>PDF_Photo_Toolkit_v3.2_2026-09-09</span>
   </footer>
 </div>
 
@@ -4159,10 +4205,24 @@ function buildRotated() {
   p.rot = cv;
 }
 
-/* ---- the crop rectangle: the target shape, as large as will fit ---- */
+/* The shape of the picture area itself. A border, and a name/date strip,
+   take their space out of the output, so the part left for the photograph
+   is not the same shape as the whole file. The crop follows THAT shape,
+   otherwise the face is squeezed to fit. */
+function contentAspect() {
+  const t = targetPx();
+  const border = Math.round((+$("phBorder").value) / 100 * Math.min(t.w, t.h) / 12);
+  const lines = captionText();
+  const stripH = lines.length ? Math.round(t.h * (+$("phStrip").value) / 100) : 0;
+  const cw = Math.max(8, t.w - border * 2);
+  const ch = Math.max(8, t.h - border * 2 - stripH);
+  return cw / ch;
+}
+
+/* ---- the crop rectangle: the picture-area shape, as large as will fit ---- */
 function defaultCrop() {
   const cv = S.photo.rot; if (!cv) return;
-  const t = targetPx(), ar = t.w / t.h;
+  const ar = contentAspect();
   let w = cv.width, h = w / ar;
   if (h > cv.height) { h = cv.height; w = h * ar; }
   S.photo.crop = { x: (cv.width - w) / 2, y: (cv.height - h) / 2, w, h };
@@ -4171,7 +4231,7 @@ function fitCropToAspect() {
   const cv = S.photo.rot, c = S.photo.crop;
   if (!cv) return;
   if (!c) { defaultCrop(); return; }
-  const t = targetPx(), ar = t.w / t.h;
+  const ar = contentAspect();
   const cx = c.x + c.w / 2, cy = c.y + c.h / 2;
   let w = c.w, h = w / ar;
   if (h > cv.height) { h = cv.height; w = h * ar; }
@@ -4276,7 +4336,7 @@ function renderStage() {
 
   cv.addEventListener("pointermove", ev => {
     if (!mode || !start) return;
-    const img = S.photo.rot, t = targetPx(), ar = t.w / t.h;
+    const img = S.photo.rot, ar = contentAspect();
     const p = pos(ev);
     const dx = (p.x - start.p.x) / start.k, dy = (p.y - start.p.y) / start.k;
     const c0 = start.c;
@@ -4313,17 +4373,23 @@ $("btnPhUndoHeal").addEventListener("click", () => { S.photo.heals.pop(); queueO
 $("phGuides").addEventListener("change", renderStage);
 
 /* ---- adjustments ---- */
+const RESHAPES = { phBorder: 1, phStrip: 1, phName: 1, phDate: 1 };
+function afterChange(id) {
+  if (RESHAPES[id]) { fitCropToAspect(); renderStage(); }
+  queueOutput();
+}
 ["phBright", "phContrast", "phSat", "phSharp", "phTol", "phFeather",
  "phSigCut", "phSigInk2", "phBorder", "phCapSize", "phStrip"].forEach(id => {
   const el = $(id); if (!el) return;
   el.addEventListener("input", () => {
     const v = $(id + "Val"); if (v) v.textContent = el.value;
-    queueOutput();
+    afterChange(id);
   });
 });
 ["phBg", "phBgCustom", "phBorderCol", "phCapFont", "phCapCol", "phCapBg", "phCapAlign",
  "phName", "phDate", "phDateFmt", "phCapBold", "phSigMode", "phSigWhite"].forEach(id => {
-  const el = $(id); if (el) el.addEventListener("change", queueOutput);
+  const el = $(id);
+  if (el) el.addEventListener(id === "phName" ? "input" : "change", () => afterChange(id));
 });
 $("btnPhAuto").addEventListener("click", () => {
   S.photo.auto = !S.photo.auto;
