@@ -3,151 +3,165 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PDF Splitter — split by file size</title>
+<title>PDF Toolkit — split, compress, organise</title>
 <!--
   ===================================================================
-  PDF Splitter  ·  single-file browser tool
-  File: PDF_Splitter_v1.0_2026-09-08.html
-  Created by Ram Lakhan Meena, INSPECTOR CBIC — 2026-09-08
+  PDF Toolkit  ·  single-file browser tool
+  File: PDF_Toolkit_v2.0_2026-09-09.html
+  Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
-  v1.0  2026-09-08  First build. Open the file in any browser, pick a
-        PDF, and the tool measures the true output size of every page.
-        Suggests page ranges for a target size (same size for all
-        parts / a different size per part / fixed number of parts),
-        lets you overwrite the ranges by hand, then splits and
-        downloads (individually or as one ZIP).
-        Every size displayed is measured, never estimated: each
-        candidate part is written out in memory before its size is
-        reported. Estimates are used only to speed up the search.
-        Nothing is uploaded anywhere - all work happens in the browser.
 
-  Libraries: pdf-lib 1.17.1, JSZip 3.10.1 (both from cdnjs).
+  v2.0  2026-09-09  Three new workbenches added to the splitter, all
+        working on one shared "working file" so the output of one can
+        be fed into the next:
+        - COMPRESS: rebuilds the PDF from re-encoded page images.
+          Quality slider 0-100, resolution 72-300 DPI, greyscale
+          option. Recommends a setting after inspecting sample pages
+          (scan or text, how colourful, how heavy), estimates the new
+          size from 3 sample pages before you commit, and shows a
+          before/after preview of one page so quality is your call.
+        - ORGANISE: page thumbnails with move, rotate and remove;
+          insert another PDF at the start, at the end or after any
+          page; or type a new page order directly.
+        - AUTO-SPLIT: scans the document (text layer, or OCR for
+          scans) and proposes cut points where a new document seems
+          to begin - printed page number restarting at 1, "Page x of
+          y" changing, a heading keyword at the top of the page, or a
+          blank separator sheet. Every candidate is listed with its
+          reason and confidence for you to confirm; nothing is split
+          automatically.
+        Working file banner with full history and reset to original.
+
+  v1.0  2026-09-08  First build. Split one PDF by target file size:
+        measures the true output size of every page, suggests page
+        ranges (same size for all parts / a different size per part /
+        fixed number of parts), manual page-range override, download
+        individually or as one ZIP.
+
+  Every size displayed is measured, never estimated: each candidate
+  part is written out in memory before its size is reported.
+  Estimates are used only to speed up the search, and are labelled
+  as estimates where they appear (compression preview).
+  Nothing is uploaded anywhere - all work happens in this browser.
+
+  Libraries (cdnjs): pdf-lib 1.17.1, pdf.js 3.11.174, JSZip 3.10.1,
+  tesseract.js 5.1.0 (loaded only if you switch OCR on).
   ===================================================================
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
-    --paper:#EEF1F3;
-    --panel:#FFFFFF;
-    --ink:#12202B;
-    --muted:#5B6C79;
-    --line:#D3DCE2;
-    --accent:#14646D;
-    --accent-2:#4E9AA0;
-    --accent-soft:#E0EDEE;
-    --warn:#96500A;
-    --warn-soft:#FBF0E1;
-    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --paper:#EEF1F3; --panel:#FFFFFF; --ink:#12202B; --muted:#5B6C79;
+    --line:#D3DCE2; --accent:#14646D; --accent-2:#4E9AA0; --accent-soft:#E0EDEE;
+    --warn:#96500A; --warn-soft:#FBF0E1; --bad:#8C2020; --bad-soft:#FBE9E9;
+    --good:#1E6B3A;
+    --mono: ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{
-    background:var(--paper); color:var(--ink); font-family:var(--sans);
-    font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:940px; margin:0 auto; padding:32px 20px 72px}
+  body{background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px; margin:0 auto; padding:32px 20px 72px}
 
-  header.masthead{
-    border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:28px;
-    display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
-  }
-  h1{font-size:29px; line-height:1.15; margin:0; letter-spacing:-0.02em; font-weight:650}
+  header.masthead{border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:22px; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  h1{font-size:29px; line-height:1.15; margin:0; letter-spacing:-.02em; font-weight:650}
   .masthead p{margin:6px 0 0; color:var(--muted); font-size:14.5px; max-width:56ch}
-  .stamp{font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; text-align:right; line-height:1.5}
+  .stamp{font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right; line-height:1.5}
 
-  section.step{
-    background:var(--panel); border:1px solid var(--line); border-radius:5px;
-    padding:20px 22px; margin-bottom:18px; position:relative;
-  }
+  section.step{background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:20px 22px; margin-bottom:18px}
   section.step[data-locked="true"]{opacity:.45; pointer-events:none}
   .step-head{display:flex; align-items:baseline; gap:12px; margin-bottom:6px}
-  .step-num{
-    font-family:var(--mono); font-size:13px; color:var(--accent);
-    border:1px solid var(--accent-2); border-radius:3px; padding:1px 7px; flex:none;
-  }
-  h2{font-size:19px; margin:0; font-weight:620; letter-spacing:-0.01em}
+  .step-num{font-family:var(--mono); font-size:13px; color:var(--accent); border:1px solid var(--accent-2); border-radius:3px; padding:1px 7px; flex:none}
+  h2{font-size:19px; margin:0; font-weight:620; letter-spacing:-.01em}
+  h3{font-size:15px; margin:22px 0 8px; font-weight:620}
   .hint{color:var(--muted); font-size:14px; margin:2px 0 16px}
-  .hint code{font-family:var(--mono); font-size:13px; background:var(--paper); padding:1px 5px; border-radius:3px}
+  .hint code, code{font-family:var(--mono); font-size:13px; background:var(--paper); padding:1px 5px; border-radius:3px}
 
-  /* file picker */
-  .drop{
-    border:1.5px dashed var(--accent-2); border-radius:5px; background:var(--accent-soft);
-    padding:26px 18px; text-align:center; cursor:pointer; transition:background .15s, border-color .15s;
-  }
+  .drop{border:1.5px dashed var(--accent-2); border-radius:5px; background:var(--accent-soft); padding:26px 18px; text-align:center; cursor:pointer; transition:background .15s,border-color .15s}
   .drop:hover,.drop.over{background:#D2E6E8; border-color:var(--accent)}
   .drop strong{display:block; font-size:16px}
   .drop span{color:var(--muted); font-size:13.5px}
   input[type=file]{display:none}
 
-  /* stats */
   .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-top:18px}
   .stat{background:var(--panel); padding:11px 13px}
   .stat dt{font-size:12.5px; color:var(--muted); margin:0}
   .stat dd{margin:2px 0 0; font-family:var(--mono); font-size:16px}
 
-  /* the page-weight strip: one bar per page, height = that page's size */
+  .lineage{margin-top:14px; font-size:13.5px; color:var(--muted)}
+  .lineage b{color:var(--ink); font-weight:600}
+  .chip{display:inline-block; font-family:var(--mono); font-size:12px; background:var(--accent-soft); color:var(--accent); border-radius:3px; padding:2px 7px; margin:2px 4px 2px 0}
+
   .strip-box{margin-top:20px}
-  .strip-title{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--muted); margin-bottom:6px}
-  .strip{
-    display:flex; align-items:flex-end; gap:1px; height:74px;
-    background:linear-gradient(var(--paper),var(--paper)) padding-box;
-    border:1px solid var(--line); border-radius:3px; padding:4px; overflow:hidden;
-  }
+  .strip-title{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--muted); margin-bottom:6px; gap:10px}
+  .strip{display:flex; align-items:flex-end; gap:1px; height:74px; border:1px solid var(--line); border-radius:3px; padding:4px; overflow:hidden; background:var(--paper)}
   .bar{flex:1 1 0; min-width:1px; background:var(--accent-2); border-radius:1px 1px 0 0}
   .bar.alt{background:var(--accent)}
   .bar.cut{box-shadow:-1.5px 0 0 0 var(--warn)}
   .ruler{display:flex; justify-content:space-between; font-family:var(--mono); font-size:11.5px; color:var(--muted); margin-top:4px}
 
-  /* progress */
   .progress{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:3px; overflow:hidden; margin-top:16px}
   .progress i{display:block; height:100%; width:0; background:var(--accent); transition:width .1s linear}
   .progress-label{font-size:13px; color:var(--muted); margin-top:6px; font-family:var(--mono)}
 
-  /* controls */
+  /* tabs */
+  .tabs{display:flex; gap:2px; margin:26px 0 0; flex-wrap:wrap; border-bottom:1px solid var(--line)}
+  .tabs button{background:transparent; color:var(--muted); border:1px solid transparent; border-bottom:none; border-radius:5px 5px 0 0; padding:10px 16px; font-weight:600; font-size:14.5px}
+  .tabs button:hover{color:var(--ink); background:#E6EBEE}
+  .tabs button[aria-selected="true"]{background:var(--panel); color:var(--accent); border-color:var(--line); margin-bottom:-1px}
+  .panel{background:var(--panel); border:1px solid var(--line); border-top:none; border-radius:0 0 5px 5px; padding:22px}
+  .panel[hidden]{display:none}
+  .panel[data-locked="true"]{opacity:.45; pointer-events:none}
+
   .modes{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
-  .modes label{
-    border:1px solid var(--line); border-radius:4px; padding:7px 12px; font-size:14px;
-    cursor:pointer; background:var(--panel);
-  }
+  .modes label{border:1px solid var(--line); border-radius:4px; padding:7px 12px; font-size:14px; cursor:pointer; background:var(--panel)}
   .modes input{margin-right:7px; accent-color:var(--accent)}
   .modes label:has(input:checked){border-color:var(--accent); background:var(--accent-soft)}
   .field{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px}
   .field label{font-size:14px; color:var(--muted)}
-  input[type=text],input[type=number],textarea{
-    font-family:var(--mono); font-size:14.5px; color:var(--ink);
-    border:1px solid var(--line); border-radius:4px; padding:8px 10px; background:var(--panel);
-  }
+  .checks{display:flex; flex-direction:column; gap:7px; margin-bottom:14px; font-size:14px}
+  .checks label{display:flex; align-items:flex-start; gap:8px; cursor:pointer}
+  .checks input{accent-color:var(--accent); margin-top:4px}
+  .checks small{color:var(--muted); display:block; font-size:12.5px}
+
+  input[type=text],input[type=number],textarea,select{font-family:var(--mono); font-size:14.5px; color:var(--ink); border:1px solid var(--line); border-radius:4px; padding:8px 10px; background:var(--panel)}
   input[type=number]{width:110px}
   input[type=text]{width:230px}
-  textarea{width:100%; min-height:76px; resize:vertical; line-height:1.6}
-  input:focus-visible,textarea:focus-visible,button:focus-visible,.drop:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  textarea{width:100%; min-height:76px; resize:vertical; line-height:1.6; font-size:14px}
+  input:focus-visible,textarea:focus-visible,button:focus-visible,select:focus-visible,.drop:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 
-  button{
-    font-family:var(--sans); font-size:14.5px; font-weight:550; cursor:pointer;
-    border:1px solid var(--accent); background:var(--accent); color:#fff;
-    border-radius:4px; padding:9px 16px;
-  }
+  input[type=range]{accent-color:var(--accent); width:260px; max-width:100%}
+  .slider-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+  .slider-val{font-family:var(--mono); font-size:20px; min-width:64px}
+  .slider-scale{display:flex; justify-content:space-between; width:260px; max-width:100%; font-size:11.5px; color:var(--muted); font-family:var(--mono)}
+
+  button{font-family:var(--sans); font-size:14.5px; font-weight:550; cursor:pointer; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:4px; padding:9px 16px}
   button:hover{background:#0F565E}
   button.ghost{background:var(--panel); color:var(--accent)}
   button.ghost:hover{background:var(--accent-soft)}
   button.small{padding:5px 11px; font-size:13px}
+  button.tiny{padding:2px 7px; font-size:12px; line-height:1.4}
   button:disabled{opacity:.5; cursor:not-allowed}
   .btn-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
 
-  /* tables */
   table{width:100%; border-collapse:collapse; margin-top:16px; font-size:14px}
-  th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line)}
+  th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top}
   th{font-size:12.5px; color:var(--muted); font-weight:550; border-bottom:1px solid var(--ink)}
   td.num,th.num{text-align:right; font-family:var(--mono)}
   td.range{font-family:var(--mono)}
+  td.snip{font-family:var(--mono); font-size:12.5px; color:var(--muted)}
   tr.over td{background:var(--warn-soft)}
+  .scroll{max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:4px; margin-top:14px}
+  .scroll table{margin:0}
+  .scroll th{position:sticky; top:0; background:var(--panel)}
 
   .note{font-size:13.5px; margin-top:14px; padding:10px 12px; border-radius:4px; background:var(--paper); color:var(--muted)}
   .note.warn{background:var(--warn-soft); color:var(--warn)}
-  .note.bad{background:#FBE9E9; color:#8C2020}
+  .note.bad{background:var(--bad-soft); color:var(--bad)}
+  .note.good{background:#E8F3EC; color:var(--good)}
   .note b{font-weight:600}
 
   .files{list-style:none; padding:0; margin:16px 0 0}
@@ -155,16 +169,33 @@
   .files .fname{font-family:var(--mono); font-size:13.5px; flex:1; word-break:break-all}
   .files .fsize{font-family:var(--mono); font-size:13.5px; color:var(--muted)}
 
+  /* organise thumbnails */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px; margin-top:16px}
+  .card{border:1px solid var(--line); border-radius:4px; padding:6px; background:var(--panel); text-align:center}
+  .card.ins{border-color:var(--accent-2); background:var(--accent-soft)}
+  .card canvas,.card .ph{width:100%; height:112px; object-fit:contain; background:var(--paper); border:1px solid var(--line); display:block}
+  .card .ph{display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted)}
+  .card .lbl{font-family:var(--mono); font-size:11.5px; margin-top:4px; color:var(--muted)}
+  .card .acts{display:flex; justify-content:center; gap:3px; margin-top:4px; flex-wrap:wrap}
+  .card .acts button{padding:1px 6px; font-size:12px; background:var(--panel); color:var(--accent); border-color:var(--line)}
+  .card .acts button:hover{background:var(--accent-soft)}
+
+  .preview{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px}
+  .preview figure{margin:0}
+  .preview img,.preview canvas{width:100%; border:1px solid var(--line); border-radius:4px; background:#fff}
+  .preview figcaption{font-size:12.5px; color:var(--muted); font-family:var(--mono); margin-top:5px}
+
   footer{margin-top:34px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:13px}
   footer span{font-family:var(--mono)}
 
   @media (max-width:620px){
     .wrap{padding:22px 14px 56px}
     h1{font-size:24px}
-    section.step{padding:16px 14px}
+    section.step,.panel{padding:16px 14px}
     input[type=text]{width:100%}
-    table{font-size:13px}
-    th,td{padding:6px 6px}
+    table{font-size:13px} th,td{padding:6px 6px}
+    .preview{grid-template-columns:1fr}
+    .tabs button{padding:9px 11px; font-size:13.5px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -174,16 +205,16 @@
 
   <header class="masthead">
     <div>
-      <h1>PDF splitter</h1>
-      <p>Break one PDF into smaller PDFs that stay under a size limit. The file never leaves this device — everything runs in the browser.</p>
+      <h1>PDF toolkit</h1>
+      <p>Split by size, compress, reorganise pages, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-08 · v1.0</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.0</div>
   </header>
 
-  <!-- STEP 1 -->
+  <!-- ============ WORKING FILE ============ -->
   <section class="step" id="s1">
-    <div class="step-head"><span class="step-num">1</span><h2>Choose the PDF</h2></div>
-    <p class="hint">Each page is written out on its own to find its true size, so the numbers you see later are real, not guesses.</p>
+    <div class="step-head"><span class="step-num">1</span><h2>Working file</h2></div>
+    <p class="hint">Each page is written out on its own to find its true size, so every number you see later is measured, not guessed.</p>
 
     <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a PDF file">
       <strong>Drop a PDF here, or click to browse</strong>
@@ -203,6 +234,8 @@
         <div class="stat"><dt>Lightest page</dt><dd id="stMin">—</dd></div>
       </dl>
 
+      <div class="lineage" id="lineage"></div>
+
       <div class="strip-box">
         <div class="strip-title"><span>Weight of each page — tall bars are the heavy scanned pages</span><span id="stripParts"></span></div>
         <div class="strip" id="strip"></div>
@@ -213,20 +246,28 @@
     </div>
   </section>
 
-  <!-- STEP 2 -->
-  <section class="step" id="s2" data-locked="true">
-    <div class="step-head"><span class="step-num">2</span><h2>Set the size you want</h2></div>
-    <p class="hint">Pick how the split should be worked out, then let the tool suggest page ranges.</p>
+  <!-- ============ TABS ============ -->
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="split"    aria-selected="true">Split by size</button>
+    <button role="tab" data-tab="compress" aria-selected="false">Compress</button>
+    <button role="tab" data-tab="organise" aria-selected="false">Organise pages</button>
+    <button role="tab" data-tab="auto"     aria-selected="false">Auto-split</button>
+  </div>
 
+  <!-- ---------- SPLIT ---------- -->
+  <div class="panel" id="tab-split" data-locked="true">
+    <h2>Split by file size</h2>
+    <p class="hint">Suggest ranges for a size limit, adjust them by hand, then split.</p>
+
+    <h3>Choose how the split is worked out</h3>
     <div class="modes">
       <label><input type="radio" name="mode" value="same" checked>Same size for every part</label>
       <label><input type="radio" name="mode" value="list">A different size per part</label>
       <label><input type="radio" name="mode" value="count">Fixed number of parts</label>
     </div>
-
     <div class="field" id="fSame">
       <label for="inSame">Each part must stay under</label>
-      <input type="number" id="inSame" value="5" min="0.05" step="0.5"> <span class="hint" style="margin:0">MB</span>
+      <input type="number" id="inSame" value="5" min="0.05" step="0.5"><span class="hint" style="margin:0">MB</span>
     </div>
     <div class="field" id="fList" hidden>
       <label for="inList">Sizes in MB, part by part</label>
@@ -237,43 +278,159 @@
       <label for="inCount">Number of parts, equal page count</label>
       <input type="number" id="inCount" value="3" min="1" step="1">
     </div>
-
     <div class="btn-row"><button id="btnSuggest">Suggest ranges</button></div>
     <div id="suggestOut"></div>
-  </section>
 
-  <!-- STEP 3 -->
-  <section class="step" id="s3" data-locked="true">
-    <div class="step-head"><span class="step-num">3</span><h2>Adjust the pages yourself</h2></div>
-    <p class="hint">This box decides the split. Type any ranges you like — parts can be different sizes, a single page is just <code>7</code>, and <code>31-end</code> runs to the last page. Pages may be skipped or repeated; you only get a warning.</p>
-
+    <h3>Page ranges to be split (edit freely)</h3>
+    <p class="hint">Parts can be different sizes. A single page is just <code>7</code>, and <code>31-end</code> runs to the last page. Pages may be skipped or repeated; you only get a warning.</p>
     <textarea id="rangeBox" spellcheck="false" aria-label="Page ranges">1-1</textarea>
     <div class="btn-row" style="margin-top:12px">
       <button id="btnCheck">Check sizes</button>
       <button id="btnLoad" class="ghost">Reload suggested ranges</button>
     </div>
     <div id="checkOut"></div>
-  </section>
 
-  <!-- STEP 4 -->
-  <section class="step" id="s4" data-locked="true">
-    <div class="step-head"><span class="step-num">4</span><h2>Split and download</h2></div>
-    <p class="hint">Files are named <code>prefix_part01_p1-12.pdf</code> so the page range is visible in the file name.</p>
-
+    <h3>Split and download</h3>
+    <p class="hint">Files are named <code>prefix_part01_p1-12.pdf</code> so the page range shows in the file name.</p>
     <div class="field">
       <label for="inPrefix">File name prefix</label>
       <input type="text" id="inPrefix" value="">
     </div>
     <div class="btn-row"><button id="btnSplit">Split now</button></div>
     <div id="splitOut"></div>
-  </section>
+  </div>
+
+  <!-- ---------- COMPRESS ---------- -->
+  <div class="panel" id="tab-compress" hidden data-locked="true">
+    <h2>Compress</h2>
+    <p class="hint">Each page is redrawn as an image at the resolution and quality you choose, then rebuilt into a new PDF. This works very well on scanned documents. On a PDF that has real text, the text becomes a picture and stops being selectable or searchable — the check below tells you which kind you have.</p>
+
+    <div class="btn-row"><button id="btnInspect">Inspect &amp; recommend</button></div>
+    <div id="inspectOut"></div>
+
+    <h3>Your setting</h3>
+    <div class="slider-row">
+      <label for="inQuality" style="font-size:14px; color:var(--muted)">Image quality</label>
+      <input type="range" id="inQuality" min="0" max="100" value="70" step="1">
+      <span class="slider-val" id="qualityVal">70%</span>
+    </div>
+    <div class="slider-scale" style="margin:0 0 14px 108px"><span>0 — smallest</span><span>100 — best</span></div>
+    <div class="field">
+      <label for="inDpi">Resolution</label>
+      <select id="inDpi">
+        <option value="72">72 DPI — screen only</option>
+        <option value="110">110 DPI — light</option>
+        <option value="150" selected>150 DPI — normal reading</option>
+        <option value="200">200 DPI — good print</option>
+        <option value="300">300 DPI — archival</option>
+      </select>
+      <label style="display:flex; align-items:center; gap:7px"><input type="checkbox" id="inGray" style="accent-color:var(--accent)">Convert to greyscale</label>
+    </div>
+
+    <div class="btn-row">
+      <button id="btnEstimate" class="ghost">Estimate size &amp; preview quality</button>
+      <button id="btnCompress">Compress whole file</button>
+      <button id="btnCancelC" class="ghost" hidden>Stop</button>
+    </div>
+    <div id="compressOut"></div>
+  </div>
+
+  <!-- ---------- ORGANISE ---------- -->
+  <div class="panel" id="tab-organise" hidden data-locked="true">
+    <h2>Organise pages</h2>
+    <p class="hint">Move, rotate or remove pages, and insert another PDF before, after or in the middle. Nothing changes the working file until you apply it.</p>
+
+    <div class="btn-row">
+      <button id="btnThumbs" class="ghost">Load page thumbnails</button>
+      <button id="btnResetOrder" class="ghost">Reset to original order</button>
+    </div>
+
+    <h3>Insert another PDF</h3>
+    <div class="field">
+      <button id="btnPickIns" class="ghost small">Choose PDF to insert</button>
+      <span class="hint" style="margin:0" id="insName">no file chosen</span>
+    </div>
+    <input type="file" id="insInput" accept="application/pdf,.pdf">
+    <div class="field">
+      <label for="insPages">Pages from that file</label>
+      <input type="text" id="insPages" value="1-end" style="width:130px">
+      <label for="insWhere">Put them</label>
+      <select id="insWhere">
+        <option value="start">before everything</option>
+        <option value="end" selected>after everything</option>
+        <option value="after">after position…</option>
+      </select>
+      <input type="number" id="insAfter" value="1" min="1" step="1" style="width:90px">
+      <button id="btnInsert" class="small">Insert</button>
+    </div>
+
+    <h3>Page order</h3>
+    <p class="hint">Type the order using <b>current positions</b> (not original page numbers). A reversed range such as <code>9-5</code> reverses those pages.</p>
+    <div class="field">
+      <input type="text" id="orderBox" style="flex:1; min-width:240px" value="">
+      <button id="btnApplyOrder" class="small ghost">Apply typed order</button>
+    </div>
+
+    <div id="gridOut"></div>
+
+    <div class="btn-row" style="margin-top:16px">
+      <button id="btnBuildOrg">Build new PDF</button>
+    </div>
+    <div id="orgOut"></div>
+  </div>
+
+  <!-- ---------- AUTO-SPLIT ---------- -->
+  <div class="panel" id="tab-auto" hidden data-locked="true">
+    <h2>Auto-split where a new document starts</h2>
+    <p class="hint">The document is scanned first, then cut points are proposed with a reason and a confidence score. You confirm them — nothing is split on its own.</p>
+
+    <h3>Step A — scan the document</h3>
+    <div class="checks">
+      <label><input type="checkbox" id="useOcr">
+        <span>Read scanned pages with OCR
+          <small>Needed when the pages are photographs of paper with no text inside. Slower — roughly a second or two per page — and it downloads the OCR engine the first time. Only the top and bottom bands of each page are read, which is where headings and page numbers sit.</small>
+        </span></label>
+    </div>
+    <div class="btn-row">
+      <button id="btnScan">Scan document</button>
+      <button id="btnCancelS" class="ghost" hidden>Stop</button>
+    </div>
+    <div id="scanOut"></div>
+
+    <h3>Step B — what should count as a new document</h3>
+    <div class="checks">
+      <label><input type="checkbox" id="rNum" checked><span>Printed page numbers
+        <small>A number that restarts at 1, jumps out of sequence, or a change in the "of N" total.</small></span></label>
+      <label><input type="checkbox" id="rKey" checked><span>Heading words at the top of a page
+        <small>Edit the list below to match the kind of bundle you are working on.</small></span></label>
+      <label><input type="checkbox" id="rBlank" checked><span>Blank separator sheet before the page</span></label>
+      <label><input type="checkbox" id="rHead"><span>Header line changes completely
+        <small>Weak signal — useful for uniform reports, noisy on mixed bundles.</small></span></label>
+      <label><input type="checkbox" id="rDrop"><span>Leave blank separator sheets out of the output files</span></label>
+    </div>
+    <textarea id="keyBox" spellcheck="false" aria-label="Heading keywords"></textarea>
+    <div class="slider-row" style="margin-top:12px">
+      <label for="inConf" style="font-size:14px; color:var(--muted)">Minimum confidence</label>
+      <input type="range" id="inConf" min="10" max="90" value="30" step="5">
+      <span class="slider-val" id="confVal">30</span>
+    </div>
+    <div class="btn-row" style="margin-top:10px"><button id="btnDetect">Find document boundaries</button></div>
+    <div id="detectOut"></div>
+
+    <h3>Step C — page-by-page reading</h3>
+    <p class="hint">What the scan actually read at the top of each page, and the printed page number it found. Useful for spotting a boundary the rules missed.</p>
+    <div class="btn-row"><button id="btnPageTable" class="ghost small">Show page table</button></div>
+    <div id="pageTableOut"></div>
+  </div>
 
   <footer>
-    Runs offline once loaded. Built with pdf-lib and JSZip. <span>PDF_Splitter_v1.0_2026-09-08</span>
+    Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
+    <span>PDF_Toolkit_v2.0_2026-09-09</span>
   </footer>
 </div>
 
 <script>
+/* ===================== ENGINE: sizes and split planning ===================== */
 /* ---------------------------------------------------------------
    Split engine: measures real output sizes and plans page ranges.
    Every size shown to the user is measured by actually writing the
@@ -430,268 +587,966 @@ function createEngine(PDFLib) {
   return { Engine, human, MB };
 }
 
+
+/* ===================== ENGINE: document boundary detection ================= */
 /* ---------------------------------------------------------------
-   Interface
+   Auto-split detector.
+   Works on the text of each page (from the PDF text layer, or from
+   OCR when the PDF is a scan) plus an optional "ink ratio" per page
+   used to spot blank separator sheets.
+   It never splits on its own - it returns candidate boundaries with
+   the reason and a confidence score, and the user confirms them.
    --------------------------------------------------------------- */
+function createDetector() {
+
+  /* Opening words that usually mean "a new document starts here".
+     The user can edit this list in the interface. */
+  const DEFAULT_KEYWORDS = [
+    "TAX INVOICE", "INVOICE", "BILL OF SUPPLY", "DELIVERY CHALLAN",
+    "FORM GST", "GSTR", "GST REG", "E-WAY BILL", "EWAY BILL",
+    "SHOW CAUSE NOTICE", "ORDER-IN-ORIGINAL", "ORDER IN ORIGINAL",
+    "ORDER-IN-APPEAL", "SUMMONS", "PANCHNAMA", "MAHAZAR",
+    "STATEMENT RECORDED", "ANNEXURE", "APPENDIX", "EXHIBIT", "SCHEDULE",
+    "BILL OF ENTRY", "SHIPPING BILL", "BANK STATEMENT", "LEDGER",
+    "AGREEMENT", "CERTIFICATE", "AFFIDAVIT", "DECLARATION",
+    "BALANCE SHEET", "PROFIT AND LOSS", "TRIAL BALANCE",
+    "CHAPTER", "PART "
+  ];
+
+  const clean = s => String(s || "").replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
+
+  /* Split a page's text into usable lines. */
+  function lines(text) {
+    return String(text || "").split(/\r?\n/).map(clean).filter(Boolean);
+  }
+
+  /* Read a printed page number from the foot (or head) of the page. */
+  function printedNumber(text) {
+    const L = lines(text);
+    if (!L.length) return null;
+    const candidates = L.slice(-3).concat(L.slice(0, 2));
+    for (const raw of candidates) {
+      let m = raw.match(/page\s*[:\-]?\s*(\d{1,4})\s*(?:of|\/)\s*(\d{1,4})/i);
+      if (m) return { num: +m[1], total: +m[2], where: raw };
+      m = raw.match(/^(\d{1,4})\s*(?:of|\/)\s*(\d{1,4})$/i);
+      if (m) return { num: +m[1], total: +m[2], where: raw };
+      m = raw.match(/^page\s*[:\-]?\s*(\d{1,4})$/i);
+      if (m) return { num: +m[1], total: null, where: raw };
+      m = raw.match(/^[\-–(\[]?\s*(\d{1,4})\s*[\-–)\]]?$/);
+      if (m && +m[1] <= 2000) return { num: +m[1], total: null, where: raw };
+    }
+    return null;
+  }
+
+  /* Rough similarity between two header lines (word overlap, 0..1). */
+  function similarity(a, b) {
+    const A = clean(a).toUpperCase().split(/\W+/).filter(w => w.length > 2);
+    const B = clean(b).toUpperCase().split(/\W+/).filter(w => w.length > 2);
+    if (!A.length || !B.length) return 0;
+    const setB = new Set(B);
+    let hit = 0;
+    for (const w of A) if (setB.has(w)) hit++;
+    return hit / Math.max(A.length, B.length);
+  }
+
+  function matchedKeyword(text, keywords, topLines) {
+    const L = lines(text).slice(0, topLines || 4);
+    const hay = L.join(" | ").toUpperCase();
+    for (const k of keywords) {
+      const key = k.trim().toUpperCase();
+      if (key && hay.includes(key)) return { keyword: k.trim(), line: L.find(x => x.toUpperCase().includes(key)) || L[0] };
+    }
+    return null;
+  }
+
+  /* Per-page facts used by the rules and shown in the page table. */
+  function describe(pageTexts, inkRatios) {
+    return pageTexts.map((t, i) => {
+      const L = lines(t);
+      return {
+        page: i + 1,
+        first: L[0] || "",
+        top: L.slice(0, 4),
+        chars: clean(t).length,
+        printed: printedNumber(t),
+        ink: inkRatios ? inkRatios[i] : null
+      };
+    });
+  }
+
+  /* Main rule engine.
+     opts: {keywords, useNumbers, useKeywords, useBlank, useHeader,
+            blankInk, blankChars, minScore} */
+  function detect(pageTexts, opts) {
+    opts = opts || {};
+    const keywords = (opts.keywords && opts.keywords.length ? opts.keywords : DEFAULT_KEYWORDS);
+    const useNumbers = opts.useNumbers !== false;
+    const useKeywords = opts.useKeywords !== false;
+    const useBlank = opts.useBlank !== false;
+    const useHeader = !!opts.useHeader;
+    const blankInk = opts.blankInk == null ? 0.004 : opts.blankInk;
+    const blankChars = opts.blankChars == null ? 12 : opts.blankChars;
+    const info = describe(pageTexts, opts.ink);
+    const out = [];
+
+    for (let i = 1; i < info.length; i++) {
+      const cur = info[i], prev = info[i - 1];
+      const reasons = [];
+      let score = 0;
+
+      if (useNumbers && cur.printed) {
+        if (cur.printed.num === 1 && (!prev.printed || prev.printed.num !== 1)) {
+          reasons.push("printed page number restarts at 1"); score += 55;
+        } else if (prev.printed && cur.printed.num !== prev.printed.num + 1) {
+          reasons.push("printed page number jumps " + prev.printed.num + " \u2192 " + cur.printed.num); score += 25;
+        }
+        if (prev.printed && cur.printed.total && prev.printed.total &&
+            cur.printed.total !== prev.printed.total) {
+          reasons.push("\u201cof N\u201d changes " + prev.printed.total + " \u2192 " + cur.printed.total); score += 30;
+        }
+      }
+
+      if (useKeywords) {
+        const hit = matchedKeyword(pageTexts[i], keywords, 4);
+        const prevHit = matchedKeyword(pageTexts[i - 1], keywords, 4);
+        if (hit && (!prevHit || prevHit.keyword !== hit.keyword || (cur.printed && cur.printed.num === 1))) {
+          reasons.push("heading \u201c" + hit.keyword + "\u201d at top of page"); score += 40;
+        }
+      }
+
+      if (useBlank) {
+        const prevBlankByInk = prev.ink != null && prev.ink < blankInk;
+        const prevBlankByText = prev.ink == null && prev.chars < blankChars;
+        if (prevBlankByInk || prevBlankByText) {
+          reasons.push("previous page is blank (separator sheet)"); score += 35;
+        }
+      }
+
+      if (useHeader && cur.first && prev.first) {
+        const sim = similarity(cur.first, prev.first);
+        if (sim < 0.2 && /[A-Z]/.test(cur.first) && cur.first.length > 8) {
+          reasons.push("header line changes completely"); score += 15;
+        }
+      }
+
+      if (reasons.length) {
+        out.push({
+          page: i + 1,                    // 1-based: the page a new document starts on
+          index: i,                       // 0-based cut position
+          score: Math.min(100, score),
+          reasons,
+          snippet: (cur.first || "").slice(0, 90)
+        });
+      }
+    }
+
+    const minScore = opts.minScore == null ? 30 : opts.minScore;
+    return out.filter(b => b.score >= minScore).sort((a, b) => a.index - b.index);
+  }
+
+  /* Chosen cut positions (0-based) -> page ranges [start,end).
+     drop = set/array of 0-based pages to leave out (blank separators). */
+  function rangesFromCuts(cuts, n, drop) {
+    const pts = [...new Set(cuts.filter(c => c > 0 && c < n))].sort((a, b) => a - b);
+    const blocks = [];
+    let cur = 0;
+    for (const c of pts) { blocks.push([cur, c]); cur = c; }
+    blocks.push([cur, n]);
+    if (!drop || !drop.length) return blocks;
+
+    /* Remove dropped pages, breaking a block into pieces where needed. */
+    const skip = new Set(drop);
+    const out = [];
+    for (const [s, e] of blocks) {
+      let start = null;
+      for (let p = s; p < e; p++) {
+        if (skip.has(p)) { if (start !== null) { out.push([start, p]); start = null; } }
+        else if (start === null) start = p;
+      }
+      if (start !== null) out.push([start, e]);
+    }
+    return out;
+  }
+
+  /* Pages that look like blank separator sheets (0-based). */
+  function blankPages(pageTexts, ink, blankInk, blankChars) {
+    blankInk = blankInk == null ? 0.004 : blankInk;
+    blankChars = blankChars == null ? 12 : blankChars;
+    const out = [];
+    for (let i = 0; i < pageTexts.length; i++) {
+      const byInk = ink && ink[i] != null ? ink[i] < blankInk : null;
+      const byText = clean(pageTexts[i]).length < blankChars;
+      if (byInk === true || (byInk === null && byText)) out.push(i);
+    }
+    return out;
+  }
+
+  /* How usable is the text we extracted? */
+  function textQuality(pageTexts) {
+    const n = pageTexts.length || 1;
+    const withText = pageTexts.filter(t => clean(t).length >= 20).length;
+    const avg = pageTexts.reduce((a, t) => a + clean(t).length, 0) / n;
+    return { withText, n, avgChars: Math.round(avg), ratio: withText / n };
+  }
+
+  /* "3,1,2,5-9" -> [2,0,1,4,5,6,7,8]  (0-based page order) */
+  function parseOrder(text, n) {
+    const order = [], errors = [];
+    const chunks = String(text).split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+    for (const c of chunks) {
+      const m = c.match(/^(\d+)(?:[-–:](\d+|end|last))?$/i);
+      if (!m) { errors.push("Cannot read \u201c" + c + "\u201d"); continue; }
+      const a = +m[1];
+      let b = m[2] === undefined ? a : (/^(end|last)$/i.test(m[2]) ? n : +m[2]);
+      if (a < 1 || b > n || a < 1) { errors.push("\u201c" + c + "\u201d is outside pages 1-" + n); continue; }
+      if (a <= b) { for (let p = a; p <= b; p++) order.push(p - 1); }
+      else { for (let p = a; p >= b; p--) order.push(p - 1); }   // reverse range
+    }
+    return { order, errors };
+  }
+
+  return { DEFAULT_KEYWORDS, detect, describe, printedNumber, rangesFromCuts, blankPages, textQuality, parseOrder, similarity };
+}
+
+
+/* ===================== INTERFACE ========================================== */
+/* eslint-disable no-unused-vars */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
 const { Engine, human, MB } = createEngine(PDFLib);
+const DET = createDetector();
 const $ = id => document.getElementById(id);
-const state = { eng: null, suggested: "", ranges: [], parts: [], files: [] };
+const frame = () => new Promise(r => requestAnimationFrame(() => r()));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-/* ---- step locking ---- */
-function unlock(on){ ["s2","s3","s4"].forEach(id => $(id).dataset.locked = on ? "false" : "true"); }
+const S = {
+  original: null,          // {bytes, name} - never overwritten
+  bytes: null, name: "",   // current working file
+  eng: null,               // size engine on the working file
+  pdfjs: null,             // pdf.js document for the working file
+  history: [],
+  suggested: "", ranges: [], files: [],
+  pageText: null, ink: null,           // filled by the auto-split scan
+  order: [], docs: {}, thumbs: new Map(), insCount: 0,
+  cancel: false
+};
 
-/* ---- file input ---- */
+/* ============================== working file ============================== */
 const drop = $("drop"), fileInput = $("fileInput");
 drop.addEventListener("click", () => fileInput.click());
 drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
-["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
-["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
-fileInput.addEventListener("change", e => { const f = e.target.files[0]; if (f) handleFile(f); });
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) openFile(f); });
+fileInput.addEventListener("change", e => { const f = e.target.files[0]; if (f) openFile(f); });
 
-async function handleFile(file){
-  if (!/\.pdf$/i.test(file.name)) { showTopError("That is not a PDF file. Choose a file ending in .pdf."); return; }
-  $("dropSub").textContent = file.name;
-  $("fileInfo").hidden = true;
-  $("suggestOut").innerHTML = ""; $("checkOut").innerHTML = ""; $("splitOut").innerHTML = "";
-  unlock(false);
-  showProgress(0, 1, "Reading the file…");
+async function openFile(file) {
+  if (!/\.pdf$/i.test(file.name)) { fatal("That is not a PDF file. Choose a file ending in .pdf."); return; }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  S.original = { bytes, name: file.name };
+  S.history = [];
+  await setWorking(bytes, file.name, "original file");
+}
 
-  let eng;
+/* Replace the working file (used by compress and organise as well). */
+async function setWorking(bytes, name, label) {
+  lockAll(true);
+  $("dropSub").textContent = name;
+  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
+  S.pageText = null; S.ink = null; S.thumbs.clear(); S.docs = {}; S.order = []; S.files = [];
+
+  progress(0, 1, "Opening the file\u2026");
+  let eng, pdoc;
   try {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    eng = await Engine.load(bytes, file.name);
+    eng = await Engine.load(bytes.slice(), name);
+    pdoc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
   } catch (err) {
     hideProgress();
-    showTopError("This PDF could not be opened. If it is password protected, remove the password first. (" + err.message + ")");
+    fatal("This PDF could not be opened. If it is password protected, remove the password first. (" + esc(err.message) + ")");
     return;
   }
 
   let last = 0;
   await eng.analyse(async (i, n) => {
-    if (i - last >= 3 || i === n) { last = i; showProgress(i, n, "Measuring page " + i + " of " + n + "…"); await frame(); }
+    if (i - last >= 3 || i === n) { last = i; progress(i, n, "Measuring page " + i + " of " + n + "\u2026"); await frame(); }
   });
   hideProgress();
 
-  state.eng = eng;
-  state.suggested = "1-" + eng.n;
-  $("rangeBox").value = state.suggested;
+  if (S.pdfjs && S.pdfjs.destroy) { try { S.pdfjs.destroy(); } catch (e) {} }
+  S.bytes = bytes; S.name = name; S.eng = eng; S.pdfjs = pdoc;
+  S.history.push({ label, size: bytes.length, pages: eng.n });
+  S.suggested = "1-" + eng.n;
+  $("rangeBox").value = S.suggested;
   $("inPrefix").value = eng.stem;
-  renderFileInfo();
-  unlock(true);
+  $("keyBox").value = DET.DEFAULT_KEYWORDS.join(", ");
+  S.order = Array.from({ length: eng.n }, (_, i) => ({ k: "main", i, rot: 0 }));
+  S.docs.main = { pdfjs: pdoc, lib: eng.doc, name };
+  renderInfo();
+  lockAll(false);
 }
 
-const frame = () => new Promise(r => requestAnimationFrame(() => r()));
-function showProgress(i, n, label){
+function lockAll(on) {
+  ["tab-split", "tab-compress", "tab-organise", "tab-auto"].forEach(id => $(id).dataset.locked = on ? "true" : "false");
+}
+function progress(i, n, label) {
   $("progWrap").hidden = false; $("progLabel").hidden = false;
-  $("progBar").style.width = (100 * i / n).toFixed(1) + "%";
+  $("progBar").style.width = (100 * i / Math.max(1, n)).toFixed(1) + "%";
   $("progLabel").textContent = label;
 }
-function hideProgress(){ $("progWrap").hidden = true; $("progLabel").hidden = true; }
-function showTopError(msg){
-  $("fileInfo").hidden = false;
-  $("guide").className = "note bad";
-  $("guide").innerHTML = msg;
-}
+function hideProgress() { $("progWrap").hidden = true; $("progLabel").hidden = true; }
+function fatal(msg) { $("fileInfo").hidden = false; $("guide").className = "note bad"; $("guide").innerHTML = msg; }
 
-/* ---- file summary + page-weight strip ---- */
-function renderFileInfo(){
-  const e = state.eng;
+function renderInfo() {
+  const e = S.eng;
   $("fileInfo").hidden = false;
-  const sum = e.pageSizes.reduce((a,b)=>a+b,0);
+  const sum = e.pageSizes.reduce((a, b) => a + b, 0);
   let maxI = 0, minI = 0;
-  e.pageSizes.forEach((s,i)=>{ if (s > e.pageSizes[maxI]) maxI = i; if (s < e.pageSizes[minI]) minI = i; });
-  $("stSize").textContent  = human(e.fileSize);
+  e.pageSizes.forEach((s, i) => { if (s > e.pageSizes[maxI]) maxI = i; if (s < e.pageSizes[minI]) minI = i; });
+  $("stSize").textContent = human(e.fileSize);
   $("stPages").textContent = e.n;
-  $("stAvg").textContent   = human(sum / e.n);
-  $("stMax").textContent   = "p" + (maxI+1) + " · " + human(e.pageSizes[maxI]);
-  $("stMin").textContent   = "p" + (minI+1) + " · " + human(e.pageSizes[minI]);
+  $("stAvg").textContent = human(sum / e.n);
+  $("stMax").textContent = "p" + (maxI + 1) + " \u00b7 " + human(e.pageSizes[maxI]);
+  $("stMin").textContent = "p" + (minI + 1) + " \u00b7 " + human(e.pageSizes[minI]);
   $("rulerEnd").textContent = "page " + e.n;
 
-  const guide = [];
-  [1,2,5,10,20].forEach(t => {
+  const chips = S.history.map(h => "<span class='chip'>" + esc(h.label) + " \u00b7 " + human(h.size) + " \u00b7 " + h.pages + "p</span>").join(" \u2192 ");
+  $("lineage").innerHTML = "<b>Working file:</b> " + esc(S.name) + "<br>" + chips +
+    (S.history.length > 1 ? " <button class='tiny ghost' id='btnReset'>Back to original</button>" : "");
+  if ($("btnReset")) $("btnReset").addEventListener("click", async () => {
+    S.history = [];
+    await setWorking(S.original.bytes, S.original.name, "original file");
+  });
+
+  const guide = [1, 2, 5, 10, 20].map(t => {
     const k = Math.max(1, Math.ceil(e.rewriteSize / (t * MB)));
-    guide.push("<b>" + t + " MB</b> → about " + k + (k === 1 ? " part" : " parts"));
+    return "<b>" + t + " MB</b> \u2192 about " + k + (k === 1 ? " part" : " parts");
   });
   $("guide").className = "note";
-  $("guide").innerHTML = "Re-saved as one file this PDF is <b>" + human(e.rewriteSize) +
-    "</b>. Rough guide: " + guide.join(" · ") + ".";
-
+  $("guide").innerHTML = "Re-saved as one file this PDF is <b>" + human(e.rewriteSize) + "</b>. Rough guide: " + guide.join(" \u00b7 ") + ".";
   drawStrip([]);
 }
 
-function drawStrip(parts){
-  const e = state.eng, strip = $("strip");
+function drawStrip(parts) {
+  const e = S.eng, strip = $("strip");
   strip.innerHTML = "";
   const max = e.pageSizes.reduce((a, b) => (b > a ? b : a), 1);
   const cuts = new Set(parts.map(p => p.start));
   const partOf = new Array(e.n).fill(-1);
   parts.forEach((p, i) => { for (let x = p.start; x < p.end; x++) partOf[x] = i; });
-
   const frag = document.createDocumentFragment();
-  for (let i = 0; i < e.n; i++){
+  for (let i = 0; i < e.n; i++) {
     const b = document.createElement("div");
-    b.className = "bar" + (partOf[i] >= 0 && partOf[i] % 2 === 1 ? " alt" : "") + (cuts.has(i) && i > 0 ? " cut" : "");
+    b.className = "bar" + (partOf[i] % 2 === 1 ? " alt" : "") + (cuts.has(i) && i > 0 ? " cut" : "");
     b.style.height = Math.max(6, 100 * e.pageSizes[i] / max) + "%";
-    b.title = "Page " + (i+1) + " — " + human(e.pageSizes[i]) + (partOf[i] >= 0 ? " · part " + (partOf[i]+1) : "");
+    b.title = "Page " + (i + 1) + " \u2014 " + human(e.pageSizes[i]) + (partOf[i] >= 0 ? " \u00b7 part " + (partOf[i] + 1) : "");
     frag.appendChild(b);
   }
   strip.appendChild(frag);
   $("stripParts").textContent = parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") + ", cuts marked" : "";
 }
 
-/* ---- tables ---- */
-function partsTable(parts, withTarget){
-  const rows = parts.map(p => {
-    const over = withTarget && !p.ok;
-    return "<tr class='" + (over ? "over" : "") + "'>" +
-      "<td class='num'>" + p.part + "</td>" +
-      "<td class='range'>" + (p.start+1) + "–" + p.end + "</td>" +
-      "<td class='num'>" + (p.end - p.start) + "</td>" +
-      "<td class='num'>" + human(p.size) + "</td>" +
-      (withTarget ? "<td class='num'>" + (p.target ? human(p.target) : "—") + "</td>" +
-                    "<td>" + (over ? "over the limit" : "fits") + "</td>" : "") +
-      "</tr>";
-  }).join("");
-  return "<table><thead><tr><th class='num'>Part</th><th>Pages</th><th class='num'>Count</th><th class='num'>Size</th>" +
-    (withTarget ? "<th class='num'>Limit</th><th>Result</th>" : "") + "</tr></thead><tbody>" + rows + "</tbody></table>";
+/* ================================= tabs ================================= */
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+function showTab(name) {
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  ["split", "compress", "organise", "auto"].forEach(t => $("tab-" + t).hidden = (t !== name));
 }
 
-/* ---- step 2: suggest ---- */
+/* ================================ SPLIT ================================ */
 document.querySelectorAll("input[name=mode]").forEach(r => r.addEventListener("change", () => {
   const m = document.querySelector("input[name=mode]:checked").value;
   $("fSame").hidden = m !== "same"; $("fList").hidden = m !== "list"; $("fCount").hidden = m !== "count";
 }));
 
+function partsTable(parts, withTarget) {
+  const rows = parts.map(p => {
+    const over = withTarget && !p.ok;
+    return "<tr class='" + (over ? "over" : "") + "'><td class='num'>" + p.part + "</td>" +
+      "<td class='range'>" + (p.start + 1) + "\u2013" + p.end + "</td>" +
+      "<td class='num'>" + (p.end - p.start) + "</td><td class='num'>" + human(p.size) + "</td>" +
+      (withTarget ? "<td class='num'>" + (p.target ? human(p.target) : "\u2014") + "</td><td>" + (over ? "over the limit" : "fits") + "</td>" : "") + "</tr>";
+  }).join("");
+  return "<table><thead><tr><th class='num'>Part</th><th>Pages</th><th class='num'>Count</th><th class='num'>Size</th>" +
+    (withTarget ? "<th class='num'>Limit</th><th>Result</th>" : "") + "</tr></thead><tbody>" + rows + "</tbody></table>";
+}
+
 $("btnSuggest").addEventListener("click", async () => {
-  const e = state.eng; if (!e) return;
+  const e = S.eng; if (!e) return;
   const btn = $("btnSuggest"), out = $("suggestOut");
   const mode = document.querySelector("input[name=mode]:checked").value;
   let targets = null, parts;
-
-  if (mode === "same"){
+  if (mode === "same") {
     const v = parseFloat($("inSame").value);
     if (!(v > 0)) { out.innerHTML = "<div class='note bad'>Enter a size greater than zero.</div>"; return; }
     targets = [Math.round(v * MB)];
-  } else if (mode === "list"){
+  } else if (mode === "list") {
     const vals = $("inList").value.split(/[,;]+/).map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
-    if (!vals.length || Math.min(...vals) <= 0){ out.innerHTML = "<div class='note bad'>Enter sizes in MB separated by commas, for example 5, 10, 2.5</div>"; return; }
+    if (!vals.length || Math.min(...vals) <= 0) { out.innerHTML = "<div class='note bad'>Enter sizes in MB separated by commas, for example 5, 10, 2.5</div>"; return; }
     targets = vals.map(v => Math.round(v * MB));
   }
-
-  btn.disabled = true; btn.textContent = "Working…"; out.innerHTML = "";
+  btn.disabled = true; btn.textContent = "Working\u2026"; out.innerHTML = "";
   try {
     parts = targets ? await e.planBySize(targets) : await e.planByCount(parseInt($("inCount").value, 10) || 1);
-  } catch (err){
-    out.innerHTML = "<div class='note bad'>" + err.message + "</div>";
+  } catch (err) {
+    out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>";
     btn.disabled = false; btn.textContent = "Suggest ranges"; return;
   }
   btn.disabled = false; btn.textContent = "Suggest ranges";
-
-  state.suggested = Engine.rangesText(parts);
-  $("rangeBox").value = state.suggested;
-  state.ranges = parts.map(p => [p.start, p.end]);
-  state.parts = parts;
+  S.suggested = Engine.rangesText(parts);
+  $("rangeBox").value = S.suggested;
+  S.ranges = parts.map(p => [p.start, p.end]);
   drawStrip(parts);
-
   const over = parts.filter(p => !p.ok).map(p => p.part);
-  const total = parts.reduce((a,p) => a + p.size, 0);
+  const total = parts.reduce((a, p) => a + p.size, 0);
   out.innerHTML = partsTable(parts, !!targets) +
-    "<div class='note'>" + parts.length + " parts, " + human(total) + " in total. These ranges are now in step 3 — change them there if you want.</div>" +
-    (over.length ? "<div class='note warn'>Part " + over.join(", ") + " could not be brought under the limit: a single page is already bigger than the size you asked for. Reduce the scan quality of that page, or accept the larger part.</div>" : "");
+    "<div class='note'>" + parts.length + " parts, " + human(total) + " in total. These ranges are now in the box below \u2014 change them there if you want.</div>" +
+    (over.length ? "<div class='note warn'>Part " + over.join(", ") + " could not be brought under the limit: a single page is already bigger than the size you asked for. Compress the file first, then split.</div>" : "");
 });
 
-/* ---- step 3: manual ranges ---- */
-$("btnLoad").addEventListener("click", () => { $("rangeBox").value = state.suggested; });
+$("btnLoad").addEventListener("click", () => { $("rangeBox").value = S.suggested; });
 
 $("btnCheck").addEventListener("click", async () => {
-  const e = state.eng; if (!e) return;
+  const e = S.eng; if (!e) return;
   const btn = $("btnCheck"), out = $("checkOut");
   const { ranges, errors } = e.parseRanges($("rangeBox").value);
-  if (!ranges.length){
-    out.innerHTML = "<div class='note bad'>" + (errors.join("<br>") || "No ranges found.") +
-      "<br>Example: <b>1-12, 13-30, 31-end</b></div>";
+  if (!ranges.length) {
+    out.innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "No ranges found.") + "<br>Example: <b>1-12, 13-30, 31-end</b></div>";
     return;
   }
-  btn.disabled = true; btn.textContent = "Measuring…"; out.innerHTML = "";
+  btn.disabled = true; btn.textContent = "Measuring\u2026"; out.innerHTML = "";
   const parts = await e.sizeRanges(ranges);
   btn.disabled = false; btn.textContent = "Check sizes";
-
-  state.ranges = ranges; state.parts = parts;
+  S.ranges = ranges;
   drawStrip(parts);
-
   const { missing, dup } = e.coverage(ranges);
-  const total = parts.reduce((a,p) => a + p.size, 0);
+  const total = parts.reduce((a, p) => a + p.size, 0);
   let html = partsTable(parts, false) +
-    "<div class='note'>" + parts.length + " parts, " + human(total) + " in total. Original file: " + human(e.fileSize) + ".</div>";
-  if (errors.length) html += "<div class='note bad'>" + errors.join("<br>") + "</div>";
+    "<div class='note'>" + parts.length + " parts, " + human(total) + " in total. Working file: " + human(e.fileSize) + ".</div>";
+  if (errors.length) html += "<div class='note bad'>" + errors.map(esc).join("<br>") + "</div>";
   if (missing.length) html += "<div class='note warn'>These pages are in no part: " + listShort(missing) + "</div>";
   if (dup.length) html += "<div class='note warn'>These pages appear in more than one part: " + listShort(dup) + "</div>";
-  if (!errors.length && !missing.length && !dup.length)
-    html += "<div class='note'>All " + e.n + " pages are covered exactly once.</div>";
+  if (!errors.length && !missing.length && !dup.length) html += "<div class='note good'>All " + e.n + " pages are covered exactly once.</div>";
   out.innerHTML = html;
 });
 
-function listShort(arr){
+function listShort(arr) {
   const s = arr.join(", ");
-  return s.length > 220 ? s.slice(0, 220) + "… (" + arr.length + " pages)" : s;
+  return s.length > 220 ? s.slice(0, 220) + "\u2026 (" + arr.length + " pages)" : s;
 }
 
-/* ---- step 4: split and download ---- */
 $("btnSplit").addEventListener("click", async () => {
-  const e = state.eng; if (!e) return;
+  const e = S.eng; if (!e) return;
   const out = $("splitOut"), btn = $("btnSplit");
-  let ranges = state.ranges;
-  if (!ranges.length){
-    const parsed = e.parseRanges($("rangeBox").value);
-    ranges = parsed.ranges;
-  }
-  if (!ranges.length){ out.innerHTML = "<div class='note bad'>No page ranges selected. Use step 2 or step 3 first.</div>"; return; }
-
+  let ranges = S.ranges;
+  if (!ranges.length) ranges = e.parseRanges($("rangeBox").value).ranges;
+  if (!ranges.length) { out.innerHTML = "<div class='note bad'>No page ranges selected.</div>"; return; }
   const prefix = ($("inPrefix").value || "").trim() || e.stem;
-  btn.disabled = true; out.innerHTML = "";
-  state.files = [];
-
-  for (let i = 0; i < ranges.length; i++){
-    btn.textContent = "Writing part " + (i+1) + " of " + ranges.length + "…";
+  btn.disabled = true; out.innerHTML = ""; S.files = [];
+  for (let i = 0; i < ranges.length; i++) {
+    btn.textContent = "Writing part " + (i + 1) + " of " + ranges.length + "\u2026";
     await frame();
     const [s, en] = ranges[i];
-    const bytes = await e.build(s, en);
-    state.files.push({ name: e.fileNameFor(i+1, s, en, prefix), bytes });
+    S.files.push({ name: e.fileNameFor(i + 1, s, en, prefix), bytes: await e.build(s, en) });
   }
   btn.disabled = false; btn.textContent = "Split now";
-
-  const items = state.files.map((f, i) =>
-    "<li><span class='fname'>" + f.name + "</span><span class='fsize'>" + human(f.bytes.length) +
-    "</span><button class='small ghost' data-i='" + i + "'>Download</button></li>").join("");
-  out.innerHTML = "<ul class='files'>" + items + "</ul>" +
+  out.innerHTML = "<ul class='files'>" + S.files.map((f, i) =>
+    "<li><span class='fname'>" + esc(f.name) + "</span><span class='fsize'>" + human(f.bytes.length) +
+    "</span><button class='small ghost' data-i='" + i + "'>Download</button></li>").join("") + "</ul>" +
     "<div class='btn-row' style='margin-top:14px'><button id='btnZip'>Download all as ZIP</button></div>";
-
   out.querySelectorAll("button[data-i]").forEach(b => b.addEventListener("click", () => {
-    const f = state.files[+b.dataset.i];
+    const f = S.files[+b.dataset.i];
     saveBlob(new Blob([f.bytes], { type: "application/pdf" }), f.name);
   }));
   $("btnZip").addEventListener("click", async () => {
-    const z = $("btnZip"); z.disabled = true; z.textContent = "Zipping…";
+    const z = $("btnZip"); z.disabled = true; z.textContent = "Zipping\u2026";
     const zip = new JSZip();
-    state.files.forEach(f => zip.file(f.name, f.bytes));
-    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
-    saveBlob(blob, prefix + "_split_" + stamp() + ".zip");
+    S.files.forEach(f => zip.file(f.name, f.bytes));
+    saveBlob(await zip.generateAsync({ type: "blob", compression: "DEFLATE" }), prefix + "_split_" + stamp() + ".zip");
     z.disabled = false; z.textContent = "Download all as ZIP";
   });
 });
 
-function saveBlob(blob, name){
+function saveBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-function stamp(){
+function stamp() {
   const d = new Date(), p = n => String(n).padStart(2, "0");
-  return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes());
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes());
 }
+
+/* ============================== rendering helpers ========================= */
+async function renderCanvas(pdoc, pageNo, scale, gray) {
+  const page = await pdoc.getPage(pageNo);
+  const vp = page.getViewport({ scale });
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.floor(vp.width));
+  c.height = Math.max(1, Math.floor(vp.height));
+  const ctx = c.getContext("2d", { alpha: false });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  if (gray) {
+    const d = ctx.getImageData(0, 0, c.width, c.height);
+    const a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const v = (a[i] * 0.299 + a[i + 1] * 0.587 + a[i + 2] * 0.114) | 0;
+      a[i] = a[i + 1] = a[i + 2] = v;
+    }
+    ctx.putImageData(d, 0, 0);
+  }
+  return { canvas: c, points: page.getViewport({ scale: 1 }) };
+}
+
+/* dark-pixel share and colourfulness of a canvas (sampled) */
+function canvasStats(canvas) {
+  const ctx = canvas.getContext("2d");
+  const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let dark = 0, tot = 0, chroma = 0;
+  for (let i = 0; i < d.length; i += 4 * 13) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if ((r + g + b) / 3 < 200) dark++;
+    chroma += mx - mn; tot++;
+  }
+  return { ink: tot ? dark / tot : 0, chroma: tot ? chroma / tot : 0 };
+}
+
+function textFromContent(tc) {
+  const rows = [];
+  tc.items.forEach(it => {
+    if (!it.str || !it.str.trim()) return;
+    const y = Math.round(it.transform[5]);
+    let row = rows.find(r => Math.abs(r.y - y) < 3);
+    if (!row) { row = { y, parts: [] }; rows.push(row); }
+    row.parts.push({ x: it.transform[4], s: it.str });
+  });
+  rows.sort((a, b) => b.y - a.y);
+  return rows.map(r => r.parts.sort((a, b) => a.x - b.x).map(p => p.s).join(" ").replace(/\s+/g, " ").trim())
+    .filter(Boolean).join("\n");
+}
+
+/* ============================== COMPRESS ================================ */
+const qSlider = $("inQuality");
+qSlider.addEventListener("input", () => { $("qualityVal").textContent = qSlider.value + "%"; });
+
+function compressSettings() {
+  return { q: (+qSlider.value) / 100, dpi: +$("inDpi").value, gray: $("inGray").checked };
+}
+
+/* Rebuild the given pages as images. Returns a PDF as Uint8Array. */
+async function buildCompressed(indices, set, onProgress) {
+  const out = await PDFLib.PDFDocument.create();
+  for (let k = 0; k < indices.length; k++) {
+    if (S.cancel) throw new Error("cancelled");
+    const i = indices[k];
+    const { canvas, points } = await renderCanvas(S.pdfjs, i + 1, set.dpi / 72, set.gray);
+    const url = canvas.toDataURL("image/jpeg", Math.max(0.02, set.q));
+    const img = await out.embedJpg(url);
+    const pg = out.addPage([points.width, points.height]);
+    pg.drawImage(img, { x: 0, y: 0, width: points.width, height: points.height });
+    canvas.width = canvas.height = 1;
+    if (onProgress) { await onProgress(k + 1, indices.length); await frame(); }
+  }
+  return await out.save({ useObjectStreams: true });
+}
+
+const sampleIdx = n => [...new Set([Math.floor(n * 0.15), Math.floor(n * 0.5), Math.floor(n * 0.85)].map(i => Math.min(n - 1, Math.max(0, i))))];
+
+$("btnInspect").addEventListener("click", async () => {
+  const e = S.eng, out = $("inspectOut"), btn = $("btnInspect");
+  if (!e) return;
+  btn.disabled = true; btn.textContent = "Inspecting\u2026"; out.innerHTML = "";
+  const idx = sampleIdx(e.n);
+  let chars = 0, ink = 0, chroma = 0;
+  for (const i of idx) {
+    const page = await S.pdfjs.getPage(i + 1);
+    chars += textFromContent(await page.getTextContent()).replace(/\s/g, "").length;
+    const { canvas } = await renderCanvas(S.pdfjs, i + 1, 100 / 72, false);
+    const st = canvasStats(canvas);
+    ink += st.ink; chroma += st.chroma;
+    canvas.width = canvas.height = 1;
+    await frame();
+  }
+  chars /= idx.length; ink /= idx.length; chroma /= idx.length;
+  const avgPage = e.rewriteSize / e.n;
+  const scanned = chars < 120;
+
+  let q, dpi, gray, why = [];
+  if (!scanned) {
+    q = 90; dpi = 200; gray = false;
+    why.push("The sample pages contain real text (about " + Math.round(chars) + " characters a page). Compressing turns that text into a picture: it will no longer be selectable or searchable, and on a text-only PDF the file often gets <b>bigger</b>, not smaller. Compress only if the file is genuinely too heavy, and keep quality high.");
+  } else {
+    if (avgPage > 500 * 1024) { q = 65; dpi = 150; }
+    else if (avgPage > 200 * 1024) { q = 72; dpi = 150; }
+    else { q = 80; dpi = 150; }
+    gray = chroma < 14;
+    why.push("These look like scanned pages (little or no text inside), averaging " + human(avgPage) + " a page \u2014 this is exactly the case where compression works well.");
+    if (gray) why.push("The sample pages are almost colourless (colour reading " + chroma.toFixed(1) + " out of 255), so greyscale has been switched on: it usually saves another 10\u201320% with no visible loss on a black-and-white scan.");
+    else why.push("The pages carry real colour (reading " + chroma.toFixed(1) + "), so greyscale is left off \u2014 switch it on only if the colour does not matter for your record.");
+    if (ink > 0.35) why.push("The pages are dark or heavily marked (" + Math.round(ink * 100) + "% of the sampled pixels are not white), so avoid dropping quality far below the recommendation \u2014 faint handwriting and stamps go first.");
+  }
+  qSlider.value = q; $("qualityVal").textContent = q + "%";
+  $("inDpi").value = String(dpi); $("inGray").checked = gray;
+
+  btn.disabled = false; btn.textContent = "Inspect & recommend";
+  out.innerHTML = "<div class='note " + (scanned ? "good" : "warn") + "'><b>Recommended: quality " + q + "%, " + dpi +
+    " DPI" + (gray ? ", greyscale on" : "") + "</b> \u2014 already set below.<br>" + why.join("<br>") + "</div>" +
+    "<div class='note'>Nothing has been changed yet. Use <b>Estimate size &amp; preview quality</b> to see the result on sample pages before committing.</div>";
+});
+
+$("btnEstimate").addEventListener("click", async () => {
+  const e = S.eng, out = $("compressOut"), btn = $("btnEstimate");
+  if (!e) return;
+  const set = compressSettings();
+  btn.disabled = true; btn.textContent = "Testing\u2026"; out.innerHTML = "";
+  S.cancel = false;
+  const idx = sampleIdx(e.n);
+  let sample;
+  try { sample = await buildCompressed(idx, set); }
+  catch (err) { btn.disabled = false; btn.textContent = "Estimate size & preview quality"; out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>"; return; }
+
+  const perPage = sample.length / idx.length;
+  const est = Math.round(perPage * e.n);
+  const cut = 100 * (1 - est / e.rewriteSize);
+
+  /* before / after preview of one page */
+  const mid = idx[Math.floor(idx.length / 2)];
+  const { canvas: before } = await renderCanvas(S.pdfjs, mid + 1, 110 / 72, false);
+  const { canvas: afterC } = await renderCanvas(S.pdfjs, mid + 1, set.dpi / 72, set.gray);
+  const afterUrl = afterC.toDataURL("image/jpeg", Math.max(0.02, set.q));
+  const beforeUrl = before.toDataURL("image/png");
+  before.width = before.height = 1; afterC.width = afterC.height = 1;
+
+  btn.disabled = false; btn.textContent = "Estimate size & preview quality";
+  out.innerHTML =
+    "<div class='note " + (cut > 15 ? "good" : "warn") + "'><b>Estimated new size: " + human(est) + "</b> " +
+    (cut >= 0 ? "\u2014 about " + cut.toFixed(0) + "% smaller than " + human(e.rewriteSize)
+              : "\u2014 that is <b>larger</b> than the present " + human(e.rewriteSize) + ", so this setting is not worth applying") +
+    ".<br>Estimated from " + idx.length + " sample pages (pages " + idx.map(i => i + 1).join(", ") + "), so the real figure will differ a little. The size after compressing is measured exactly.</div>" +
+    "<div class='preview'>" +
+      "<figure><img src='" + beforeUrl + "' alt='page before compression'><figcaption>Before \u2014 page " + (mid + 1) + "</figcaption></figure>" +
+      "<figure><img src='" + afterUrl + "' alt='page after compression'><figcaption>After \u2014 quality " + Math.round(set.q * 100) + "%, " + set.dpi + " DPI" + (set.gray ? ", greyscale" : "") + "</figcaption></figure>" +
+    "</div>" +
+    "<div class='note'>Open both pictures full size (right-click \u2192 open image) and look at the smallest handwriting, the seal and the signature. If those are still readable, the setting is safe for a departmental record.</div>";
+});
+
+$("btnCancelC").addEventListener("click", () => { S.cancel = true; });
+
+$("btnCompress").addEventListener("click", async () => {
+  const e = S.eng, out = $("compressOut"), btn = $("btnCompress");
+  if (!e) return;
+  const set = compressSettings();
+  S.cancel = false;
+  btn.disabled = true; $("btnCancelC").hidden = false; out.innerHTML = "";
+  const all = Array.from({ length: e.n }, (_, i) => i);
+  let bytes;
+  try {
+    bytes = await buildCompressed(all, set, async (k, n) => {
+      btn.textContent = "Compressing page " + k + " of " + n + "\u2026";
+      progress(k, n, "Compressing page " + k + " of " + n + "\u2026");
+    });
+  } catch (err) {
+    hideProgress(); btn.disabled = false; btn.textContent = "Compress whole file"; $("btnCancelC").hidden = true;
+    out.innerHTML = "<div class='note " + (err.message === "cancelled" ? "warn" : "bad") + "'>" +
+      (err.message === "cancelled" ? "Stopped. Nothing was changed." : esc(err.message)) + "</div>";
+    return;
+  }
+  hideProgress(); btn.disabled = false; btn.textContent = "Compress whole file"; $("btnCancelC").hidden = true;
+
+  const cut = 100 * (1 - bytes.length / e.rewriteSize);
+  const fname = e.stem + "_compressed_q" + Math.round(set.q * 100) + "_" + set.dpi + "dpi" + (set.gray ? "_grey" : "") + ".pdf";
+  out.innerHTML = "<div class='note " + (cut > 0 ? "good" : "warn") + "'><b>Done \u2014 " + human(bytes.length) + "</b> (was " +
+    human(e.rewriteSize) + ", " + (cut >= 0 ? cut.toFixed(1) + "% smaller" : Math.abs(cut).toFixed(1) + "% larger") + "). Measured, not estimated.</div>" +
+    "<div class='btn-row' style='margin-top:12px'><button id='btnDlC'>Download " + esc(fname) + "</button>" +
+    "<button id='btnUseC' class='ghost'>Use as working file</button></div>" +
+    "<div class='note'>Using it as the working file lets you split the compressed version straight away. The original stays available under the working-file banner above.</div>";
+  $("btnDlC").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  $("btnUseC").addEventListener("click", async () => {
+    await setWorking(bytes, fname, "compressed q" + Math.round(set.q * 100) + "/" + set.dpi + "dpi" + (set.gray ? "/grey" : ""));
+    showTab("split");
+  });
+});
+
+/* ============================== ORGANISE =============================== */
+$("btnPickIns").addEventListener("click", () => $("insInput").click());
+$("insInput").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  S.pendingIns = { bytes, name: f.name };
+  $("insName").textContent = f.name;
+});
+
+$("btnInsert").addEventListener("click", async () => {
+  const out = $("orgOut");
+  if (!S.pendingIns) { out.innerHTML = "<div class='note bad'>Choose a PDF to insert first.</div>"; return; }
+  const key = "ins" + (++S.insCount);
+  let lib, pj;
+  try {
+    lib = await PDFLib.PDFDocument.load(S.pendingIns.bytes.slice(), { ignoreEncryption: true });
+    pj = await pdfjsLib.getDocument({ data: S.pendingIns.bytes.slice() }).promise;
+  } catch (err) { out.innerHTML = "<div class='note bad'>That file could not be opened: " + esc(err.message) + "</div>"; return; }
+  const n = lib.getPageCount();
+  S.docs[key] = { lib, pdfjs: pj, name: S.pendingIns.name };
+
+  const { order, errors } = DET.parseOrder($("insPages").value.replace(/end|last/gi, String(n)), n);
+  if (!order.length) { out.innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "No pages selected from that file.") + "</div>"; return; }
+  const items = order.map(i => ({ k: key, i, rot: 0 }));
+
+  const where = $("insWhere").value;
+  if (where === "start") S.order = items.concat(S.order);
+  else if (where === "end") S.order = S.order.concat(items);
+  else {
+    const at = Math.min(Math.max(1, parseInt($("insAfter").value, 10) || 1), S.order.length);
+    S.order = S.order.slice(0, at).concat(items, S.order.slice(at));
+  }
+  out.innerHTML = "<div class='note good'>" + items.length + " page(s) from " + esc(S.pendingIns.name) +
+    " inserted. They are shown in colour below. Press <b>Build new PDF</b> when the order is right.</div>";
+  await renderGrid();
+});
+
+$("btnResetOrder").addEventListener("click", async () => {
+  S.order = Array.from({ length: S.eng.n }, (_, i) => ({ k: "main", i, rot: 0 }));
+  $("orgOut").innerHTML = "<div class='note'>Back to the original order. Inserted pages removed.</div>";
+  await renderGrid();
+});
+
+$("btnThumbs").addEventListener("click", () => renderGrid());
+
+$("btnApplyOrder").addEventListener("click", async () => {
+  const txt = $("orderBox").value.trim();
+  const { order, errors } = DET.parseOrder(txt.replace(/end|last/gi, String(S.order.length)), S.order.length);
+  if (!order.length) { $("orgOut").innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "Nothing to apply.") + "</div>"; return; }
+  S.order = order.map(p => S.order[p]).filter(Boolean);
+  $("orgOut").innerHTML = "<div class='note good'>New order applied \u2014 " + S.order.length + " pages.</div>" +
+    (errors.length ? "<div class='note warn'>" + errors.map(esc).join("<br>") + "</div>" : "");
+  await renderGrid();
+});
+
+async function thumb(k, i) {
+  const key = k + ":" + i;
+  if (S.thumbs.has(key)) return S.thumbs.get(key);
+  const doc = S.docs[k]; if (!doc) return null;
+  const { canvas } = await renderCanvas(doc.pdfjs, i + 1, 0.22, false);
+  const url = canvas.toDataURL("image/jpeg", 0.6);
+  canvas.width = canvas.height = 1;
+  S.thumbs.set(key, url);
+  return url;
+}
+
+async function renderGrid() {
+  const out = $("gridOut");
+  $("orderBox").value = "1-" + S.order.length;
+  if (!S.order.length) { out.innerHTML = "<div class='note warn'>No pages left. Reset to the original order.</div>"; return; }
+  out.innerHTML = "<div class='note'>Loading thumbnails\u2026</div><div class='grid' id='grid'></div>";
+  const grid = $("grid");
+  for (let pos = 0; pos < S.order.length; pos++) {
+    const it = S.order[pos];
+    const card = document.createElement("div");
+    card.className = "card" + (it.k === "main" ? "" : " ins");
+    card.innerHTML =
+      "<div class='ph'>page " + (it.i + 1) + "</div>" +
+      "<div class='lbl'>" + (pos + 1) + " \u2190 " + (it.k === "main" ? "p" + (it.i + 1) : esc(S.docs[it.k].name.slice(0, 8)) + " p" + (it.i + 1)) +
+      (it.rot ? " \u00b7 " + it.rot + "\u00b0" : "") + "</div>" +
+      "<div class='acts'>" +
+        "<button data-a='left'  data-p='" + pos + "' title='move left'>\u25c0</button>" +
+        "<button data-a='right' data-p='" + pos + "' title='move right'>\u25b6</button>" +
+        "<button data-a='rot'   data-p='" + pos + "' title='rotate 90\u00b0'>\u21bb</button>" +
+        "<button data-a='del'   data-p='" + pos + "' title='remove'>\u2715</button>" +
+      "</div>";
+    grid.appendChild(card);
+    thumb(it.k, it.i).then(url => {
+      if (!url) return;
+      const img = document.createElement("img");
+      img.src = url; img.alt = "page " + (it.i + 1);
+      img.style.cssText = "width:100%;height:112px;object-fit:contain;background:var(--paper);border:1px solid var(--line);display:block";
+      if (it.rot) img.style.transform = "rotate(" + it.rot + "deg)";
+      card.replaceChild(img, card.firstChild);
+    });
+    if (pos % 12 === 11) await frame();
+  }
+  out.querySelector(".note").outerHTML =
+    "<div class='note'>" + S.order.length + " pages in the new order. Coloured cards come from an inserted file. " +
+    "The label shows <code>position \u2190 source page</code>.</div>";
+  grid.addEventListener("click", async ev => {
+    const b = ev.target.closest("button[data-a]"); if (!b) return;
+    const p = +b.dataset.p, a = b.dataset.a;
+    if (a === "left" && p > 0) { const t = S.order[p - 1]; S.order[p - 1] = S.order[p]; S.order[p] = t; }
+    else if (a === "right" && p < S.order.length - 1) { const t = S.order[p + 1]; S.order[p + 1] = S.order[p]; S.order[p] = t; }
+    else if (a === "rot") S.order[p].rot = (S.order[p].rot + 90) % 360;
+    else if (a === "del") S.order.splice(p, 1);
+    await renderGrid();
+  }, { once: true });
+}
+
+$("btnBuildOrg").addEventListener("click", async () => {
+  const out = $("orgOut"), btn = $("btnBuildOrg");
+  if (!S.order.length) { out.innerHTML = "<div class='note bad'>No pages selected.</div>"; return; }
+  btn.disabled = true; btn.textContent = "Building\u2026"; await frame();
+
+  const doc = await PDFLib.PDFDocument.create();
+  /* one copyPages call per source document, in order of use */
+  const bySrc = {};
+  S.order.forEach((it, pos) => { (bySrc[it.k] = bySrc[it.k] || []).push({ i: it.i, pos }); });
+  const copied = new Array(S.order.length);
+  for (const k of Object.keys(bySrc)) {
+    const list = bySrc[k];
+    const pages = await doc.copyPages(S.docs[k].lib, list.map(x => x.i));
+    pages.forEach((pg, j) => { copied[list[j].pos] = pg; });
+  }
+  copied.forEach((pg, pos) => {
+    const rot = S.order[pos].rot;
+    if (rot) pg.setRotation(PDFLib.degrees((pg.getRotation().angle + rot) % 360));
+    doc.addPage(pg);
+  });
+  const bytes = await doc.save({ useObjectStreams: true });
+  btn.disabled = false; btn.textContent = "Build new PDF";
+
+  const fname = S.eng.stem + "_organised.pdf";
+  out.innerHTML = "<div class='note good'><b>Built \u2014 " + S.order.length + " pages, " + human(bytes.length) + ".</b></div>" +
+    "<div class='btn-row' style='margin-top:12px'><button id='btnDlO'>Download " + esc(fname) + "</button>" +
+    "<button id='btnUseO' class='ghost'>Use as working file</button></div>";
+  $("btnDlO").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  $("btnUseO").addEventListener("click", async () => { await setWorking(bytes, fname, "reorganised " + S.order.length + "p"); showTab("split"); });
+});
+
+/* ============================== AUTO-SPLIT ============================== */
+$("inConf").addEventListener("input", () => { $("confVal").textContent = $("inConf").value; });
+$("btnCancelS").addEventListener("click", () => { S.cancel = true; });
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("could not load " + src));
+    document.head.appendChild(s);
+  });
+}
+
+$("btnScan").addEventListener("click", async () => {
+  const e = S.eng, out = $("scanOut"), btn = $("btnScan");
+  if (!e) return;
+  S.cancel = false;
+  btn.disabled = true; $("btnCancelS").hidden = false; out.innerHTML = "";
+
+  let worker = null;
+  if ($("useOcr").checked) {
+    out.innerHTML = "<div class='note'>Loading the OCR engine\u2026 the first run downloads about 15 MB.</div>";
+    try {
+      if (!window.Tesseract) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js");
+      worker = await Tesseract.createWorker("eng");
+    } catch (err) {
+      out.innerHTML = "<div class='note warn'>OCR could not be loaded (" + esc(err.message) +
+        "). Carrying on with the text layer only \u2014 if these pages are scans, the detection below will find little.</div>";
+      worker = null;
+    }
+  }
+
+  const texts = [], inks = [];
+  try {
+    for (let i = 0; i < e.n; i++) {
+      if (S.cancel) throw new Error("cancelled");
+      const page = await S.pdfjs.getPage(i + 1);
+      let txt = textFromContent(await page.getTextContent());
+      const { canvas } = await renderCanvas(S.pdfjs, i + 1, 0.34, false);
+      inks.push(canvasStats(canvas).ink);
+      canvas.width = canvas.height = 1;
+
+      if (worker && txt.replace(/\s/g, "").length < 20) {
+        const { canvas: big } = await renderCanvas(S.pdfjs, i + 1, 1.6, true);
+        const top = crop(big, 0, 0, big.width, Math.floor(big.height * 0.30));
+        const bot = crop(big, 0, Math.floor(big.height * 0.86), big.width, Math.floor(big.height * 0.14));
+        const t1 = (await worker.recognize(top)).data.text;
+        const t2 = (await worker.recognize(bot)).data.text;
+        txt = (t1 || "").trim() + "\n" + (t2 || "").trim();
+        big.width = big.height = 1; top.width = top.height = 1; bot.width = bot.height = 1;
+      }
+      texts.push(txt);
+      progress(i + 1, e.n, "Scanning page " + (i + 1) + " of " + e.n + (worker ? " (OCR)" : "") + "\u2026");
+      await frame();
+    }
+  } catch (err) {
+    hideProgress(); btn.disabled = false; $("btnCancelS").hidden = true;
+    if (worker) await worker.terminate();
+    out.innerHTML = "<div class='note " + (err.message === "cancelled" ? "warn" : "bad") + "'>" +
+      (err.message === "cancelled" ? "Scan stopped." : esc(err.message)) + "</div>";
+    return;
+  }
+  if (worker) await worker.terminate();
+  hideProgress(); btn.disabled = false; $("btnCancelS").hidden = true;
+
+  S.pageText = texts; S.ink = inks;
+  const q = DET.textQuality(texts);
+  const blanks = DET.blankPages(texts, inks);
+  out.innerHTML = "<div class='note " + (q.ratio > 0.6 ? "good" : "warn") + "'>Scanned " + q.n + " pages. Readable text found on <b>" +
+    q.withText + "</b> of them (about " + q.avgChars + " characters a page)." +
+    (q.ratio < 0.6 && !$("useOcr").checked ? " That is low \u2014 tick <b>Read scanned pages with OCR</b> and scan again for a reliable result." : "") +
+    "</div>" + (blanks.length ? "<div class='note'>Blank sheets detected at page " + blanks.map(i => i + 1).join(", ") + ".</div>" : "");
+});
+
+function crop(canvas, x, y, w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  c.getContext("2d").drawImage(canvas, x, y, w, h, 0, 0, w, h);
+  return c;
+}
+
+$("btnDetect").addEventListener("click", () => {
+  const out = $("detectOut");
+  if (!S.pageText) { out.innerHTML = "<div class='note bad'>Scan the document first (step A).</div>"; return; }
+  const keywords = $("keyBox").value.split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+  const found = DET.detect(S.pageText, {
+    keywords, ink: S.ink,
+    useNumbers: $("rNum").checked, useKeywords: $("rKey").checked,
+    useBlank: $("rBlank").checked, useHeader: $("rHead").checked,
+    minScore: +$("inConf").value
+  });
+  if (!found.length) {
+    out.innerHTML = "<div class='note warn'>No boundaries found with these rules. Lower the confidence, add a heading word that appears on the first page of each document, or set the ranges by hand in the split tab.</div>";
+    return;
+  }
+  out.innerHTML = "<div class='scroll'><table><thead><tr><th>Use</th><th class='num'>Starts at page</th>" +
+    "<th class='num'>Confidence</th><th>Why</th><th>First line read</th></tr></thead><tbody>" +
+    found.map(b => "<tr><td><input type='checkbox' class='cut' data-i='" + b.index + "' checked style='accent-color:var(--accent)'></td>" +
+      "<td class='num'>" + b.page + "</td><td class='num'>" + b.score + "</td>" +
+      "<td style='font-size:13px'>" + b.reasons.map(esc).join("<br>") + "</td>" +
+      "<td class='snip'>" + esc(b.snippet) + "</td></tr>").join("") +
+    "</tbody></table></div>" +
+    "<div class='btn-row' style='margin-top:14px'><button id='btnSend'>Use ticked cuts as the split</button></div>" +
+    "<div class='note'>" + found.length + " candidate boundaries. Untick anything that is a continuation page rather than a new document.</div>";
+
+  $("btnSend").addEventListener("click", async () => {
+    const cuts = [...out.querySelectorAll("input.cut:checked")].map(c => +c.dataset.i);
+    const drop = $("rDrop").checked ? DET.blankPages(S.pageText, S.ink) : [];
+    const ranges = DET.rangesFromCuts(cuts, S.eng.n, drop);
+    S.ranges = ranges;
+    S.suggested = ranges.map(r => (r[0] + 1) + "-" + r[1]).join(", ");
+    $("rangeBox").value = S.suggested;
+    const parts = await S.eng.sizeRanges(ranges);
+    drawStrip(parts);
+    showTab("split");
+    $("checkOut").innerHTML = partsTable(parts, false) +
+      "<div class='note good'>" + ranges.length + " documents from the auto-split" +
+      (drop.length ? ", " + drop.length + " blank sheet(s) left out" : "") +
+      ". Sizes measured. Edit the ranges above if a cut is wrong, then split.</div>";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+
+$("btnPageTable").addEventListener("click", () => {
+  const out = $("pageTableOut");
+  if (!S.pageText) { out.innerHTML = "<div class='note bad'>Scan the document first (step A).</div>"; return; }
+  const info = DET.describe(S.pageText, S.ink);
+  out.innerHTML = "<div class='scroll'><table><thead><tr><th class='num'>Page</th><th>First line read</th>" +
+    "<th>Printed number</th><th class='num'>Characters</th><th class='num'>Ink</th></tr></thead><tbody>" +
+    info.map(p => "<tr><td class='num'>" + p.page + "</td><td class='snip'>" + esc((p.first || "\u2014").slice(0, 80)) + "</td>" +
+      "<td class='snip'>" + esc(p.printed ? p.printed.where : "\u2014") + "</td>" +
+      "<td class='num'>" + p.chars + "</td><td class='num'>" + (p.ink == null ? "\u2014" : Math.round(p.ink * 100) + "%") + "</td></tr>").join("") +
+    "</tbody></table></div>";
+});
+
 </script>
 </body>
 </html>
