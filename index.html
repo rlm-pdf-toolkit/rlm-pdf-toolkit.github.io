@@ -7,10 +7,29 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Toolkit_v2.1_2026-09-09.html
+  File: PDF_Toolkit_v2.2_2026-09-09.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v2.2  2026-09-09  Organise tab fixed and extended.
+        FIX: the page grid stopped responding after a single click on
+        empty space. Its click handler had been registered to fire
+        only once, so the first click anywhere in the grid - even on
+        blank space between cards - removed it and every button went
+        dead until the thumbnails were reloaded. Handling is now bound
+        to the container that survives redraws, and moving, rotating
+        or removing a page updates only the cards affected instead of
+        rebuilding the whole grid, which also makes a 200-page bundle
+        respond immediately.
+        NEW: click any page to see it enlarged, with previous/next,
+        arrow-key and Escape support, and rotate from inside the
+        preview. The numbering grid has the same preview, with a
+        "mark as blank" button in it, so blank pages can be judged at
+        full size before being ticked.
+        NEW: drag a page to move it. Use the new grip handle on each
+        card, or on a desktop simply drag the thumbnail itself; the
+        page scrolls on its own when the pointer nears the edge.
 
   v2.1  2026-09-09  NUMBER PAGES workbench added. Writes a small
         pencil-style number at a corner of every page, the way
@@ -204,6 +223,21 @@
   .preview img,.preview canvas{width:100%; border:1px solid var(--line); border-radius:4px; background:#fff}
   .preview figcaption{font-size:12.5px; color:var(--muted); font-family:var(--mono); margin-top:5px}
 
+  /* enlarged preview */
+  .modal{position:fixed; inset:0; background:rgba(18,32,43,.74); display:flex; align-items:center; justify-content:center; z-index:50; padding:18px}
+  .modal .sheet{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px; max-width:min(940px,96vw); max-height:94vh; display:flex; flex-direction:column; gap:10px}
+  .modal img{max-width:100%; max-height:74vh; object-fit:contain; border:1px solid var(--line); background:#fff; margin:0 auto}
+  .modal .bar{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+  .modal .cap{font-family:var(--mono); font-size:13px; color:var(--muted)}
+
+  /* dragging */
+  .card.dragging{opacity:.32}
+  .card.drop-here{outline:2px solid var(--accent); outline-offset:2px}
+  .card .grip{cursor:grab; touch-action:none}
+  .card .grip:active{cursor:grabbing}
+  .card .ph,.card img{cursor:zoom-in}
+  .drag-ghost{position:fixed; z-index:60; width:96px; pointer-events:none; opacity:.92; transform:translate(-50%,-50%); border:1px solid var(--accent); border-radius:4px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
   footer{margin-top:34px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:13px}
   footer span{font-family:var(--mono)}
 
@@ -227,7 +261,7 @@
       <h1>PDF toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.1</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-09 · v2.2</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -358,7 +392,7 @@
   <!-- ---------- ORGANISE ---------- -->
   <div class="panel" id="tab-organise" hidden data-locked="true">
     <h2>Organise pages</h2>
-    <p class="hint">Move, rotate or remove pages, and insert another PDF before, after or in the middle. Nothing changes the working file until you apply it.</p>
+    <p class="hint">Click a page to see it enlarged. Drag the ⠿ handle to move it (on a desktop you can drag the thumbnail itself), or use the arrows. Insert another PDF before, after or in the middle. Nothing changes the working file until you press Build.</p>
 
     <div class="btn-row">
       <button id="btnThumbs" class="ghost">Load page thumbnails</button>
@@ -497,7 +531,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Toolkit_v2.1_2026-09-09</span>
+    <span>PDF_Toolkit_v2.2_2026-09-09</span>
   </footer>
 </div>
 
@@ -1064,7 +1098,7 @@ async function setWorking(bytes, name, label) {
   lockAll(true);
   $("dropSub").textContent = name;
   ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
-  S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); S.docs = {}; S.order = []; S.files = [];
+  S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); if (typeof PREVIEW_CACHE !== "undefined") PREVIEW_CACHE.clear(); S.docs = {}; S.order = []; S.files = [];
 
   progress(0, 1, "Opening the file\u2026");
   let eng, pdoc;
@@ -1515,7 +1549,7 @@ $("btnInsert").addEventListener("click", async () => {
     S.order = S.order.slice(0, at).concat(items, S.order.slice(at));
   }
   out.innerHTML = "<div class='note good'>" + items.length + " page(s) from " + esc(S.pendingIns.name) +
-    " inserted. They are shown in colour below. Press <b>Build new PDF</b> when the order is right.</div>";
+    " inserted. They are the coloured cards below. Press <b>Build new PDF</b> when the order is right.</div>";
   await renderGrid();
 });
 
@@ -1548,49 +1582,181 @@ async function thumb(k, i) {
   return url;
 }
 
+function cardLabel(it, pos) {
+  return (pos + 1) + " \u2190 " + (it.k === "main" ? "p" + (it.i + 1)
+    : esc(S.docs[it.k].name.slice(0, 8)) + " p" + (it.i + 1)) + (it.rot ? " \u00b7 " + it.rot + "\u00b0" : "");
+}
+
+function makeCard(it, pos) {
+  const card = document.createElement("div");
+  card.className = "card" + (it.k === "main" ? "" : " ins");
+  card.dataset.pos = String(pos);
+  card.innerHTML =
+    "<div class='ph'>page " + (it.i + 1) + "</div>" +
+    "<div class='lbl'>" + cardLabel(it, pos) + "</div>" +
+    "<div class='acts'>" +
+      "<button data-a='grip' class='grip' title='drag to move'>\u283f</button>" +
+      "<button data-a='left'  title='move left'>\u25c0</button>" +
+      "<button data-a='right' title='move right'>\u25b6</button>" +
+      "<button data-a='rot'   title='rotate 90\u00b0'>\u21bb</button>" +
+      "<button data-a='del'   title='remove'>\u2715</button>" +
+    "</div>";
+  thumb(it.k, it.i).then(url => {
+    if (!url || !card.firstChild) return;
+    const img = document.createElement("img");
+    img.src = url; img.alt = "page " + (it.i + 1); img.draggable = false;
+    img.style.cssText = "width:100%;height:112px;object-fit:contain;background:var(--paper);border:1px solid var(--line);display:block";
+    if (it.rot) img.style.transform = "rotate(" + it.rot + "deg)";
+    card.replaceChild(img, card.firstChild);
+  });
+  return card;
+}
+
+let gridBound = false;
+
 async function renderGrid() {
   const out = $("gridOut");
   $("orderBox").value = "1-" + S.order.length;
   if (!S.order.length) { out.innerHTML = "<div class='note warn'>No pages left. Reset to the original order.</div>"; return; }
-  out.innerHTML = "<div class='note'>Loading thumbnails\u2026</div><div class='grid' id='grid'></div>";
+  out.innerHTML = "<div class='note' id='orgNote'></div><div class='grid' id='grid'></div>";
   const grid = $("grid");
   for (let pos = 0; pos < S.order.length; pos++) {
-    const it = S.order[pos];
-    const card = document.createElement("div");
-    card.className = "card" + (it.k === "main" ? "" : " ins");
-    card.innerHTML =
-      "<div class='ph'>page " + (it.i + 1) + "</div>" +
-      "<div class='lbl'>" + (pos + 1) + " \u2190 " + (it.k === "main" ? "p" + (it.i + 1) : esc(S.docs[it.k].name.slice(0, 8)) + " p" + (it.i + 1)) +
-      (it.rot ? " \u00b7 " + it.rot + "\u00b0" : "") + "</div>" +
-      "<div class='acts'>" +
-        "<button data-a='left'  data-p='" + pos + "' title='move left'>\u25c0</button>" +
-        "<button data-a='right' data-p='" + pos + "' title='move right'>\u25b6</button>" +
-        "<button data-a='rot'   data-p='" + pos + "' title='rotate 90\u00b0'>\u21bb</button>" +
-        "<button data-a='del'   data-p='" + pos + "' title='remove'>\u2715</button>" +
-      "</div>";
-    grid.appendChild(card);
-    thumb(it.k, it.i).then(url => {
-      if (!url) return;
-      const img = document.createElement("img");
-      img.src = url; img.alt = "page " + (it.i + 1);
-      img.style.cssText = "width:100%;height:112px;object-fit:contain;background:var(--paper);border:1px solid var(--line);display:block";
-      if (it.rot) img.style.transform = "rotate(" + it.rot + "deg)";
-      card.replaceChild(img, card.firstChild);
-    });
-    if (pos % 12 === 11) await frame();
+    grid.appendChild(makeCard(S.order[pos], pos));
+    if (pos % 16 === 15) await frame();
   }
-  out.querySelector(".note").outerHTML =
-    "<div class='note'>" + S.order.length + " pages in the new order. Coloured cards come from an inserted file. " +
-    "The label shows <code>position \u2190 source page</code>.</div>";
-  grid.addEventListener("click", async ev => {
-    const b = ev.target.closest("button[data-a]"); if (!b) return;
-    const p = +b.dataset.p, a = b.dataset.a;
-    if (a === "left" && p > 0) { const t = S.order[p - 1]; S.order[p - 1] = S.order[p]; S.order[p] = t; }
-    else if (a === "right" && p < S.order.length - 1) { const t = S.order[p + 1]; S.order[p + 1] = S.order[p]; S.order[p] = t; }
-    else if (a === "rot") S.order[p].rot = (S.order[p].rot + 90) % 360;
-    else if (a === "del") S.order.splice(p, 1);
-    await renderGrid();
-  }, { once: true });
+  orgNote();
+  if (!gridBound) { bindGrid(out); gridBound = true; }   // bound to the container, which survives re-renders
+}
+
+function orgNote() {
+  const n = $("orgNote");
+  if (n) n.innerHTML = S.order.length + " pages in the new order. Coloured cards come from an inserted file. " +
+    "<b>Click a page to see it enlarged</b>, drag the \u283f handle to move it, or use the arrows. " +
+    "The label shows <code>position \u2190 source page</code>.";
+}
+
+/* Keep the DOM and S.order in step without rebuilding every card. */
+function relabel() {
+  const grid = $("grid"); if (!grid) return;
+  [...grid.children].forEach((card, pos) => {
+    card.dataset.pos = String(pos);
+    const l = card.querySelector(".lbl");
+    if (l) l.innerHTML = cardLabel(S.order[pos], pos);
+  });
+  orgNote();
+}
+
+function applyAction(a, pos) {
+  const grid = $("grid"); if (!grid) return;
+  const cards = grid.children;
+  if (a === "left" && pos > 0) {
+    [S.order[pos - 1], S.order[pos]] = [S.order[pos], S.order[pos - 1]];
+    grid.insertBefore(cards[pos], cards[pos - 1]);
+    relabel();
+  } else if (a === "right" && pos < S.order.length - 1) {
+    [S.order[pos + 1], S.order[pos]] = [S.order[pos], S.order[pos + 1]];
+    grid.insertBefore(cards[pos + 1], cards[pos]);
+    relabel();
+  } else if (a === "rot") {
+    S.order[pos].rot = (S.order[pos].rot + 90) % 360;
+    const img = cards[pos].querySelector("img");
+    if (img) img.style.transform = "rotate(" + S.order[pos].rot + "deg)";
+    relabel();
+  } else if (a === "del") {
+    S.order.splice(pos, 1);
+    cards[pos].remove();
+    relabel();
+    $("orderBox").value = "1-" + S.order.length;
+  }
+}
+
+/* Move a page from one position to another (used by dragging). */
+function movePage(from, to) {
+  if (from === to || from < 0 || to < 0 || from >= S.order.length) return;
+  const it = S.order.splice(from, 1)[0];
+  S.order.splice(to, 0, it);
+  const grid = $("grid");
+  const card = grid.children[from];
+  grid.removeChild(card);
+  grid.insertBefore(card, grid.children[to] || null);
+  relabel();
+}
+
+function bindGrid(container) {
+  /* clicks on the action buttons */
+  container.addEventListener("click", e => {
+    const b = e.target.closest("button[data-a]");
+    if (!b || b.dataset.a === "grip") return;
+    const card = b.closest(".card"); if (!card) return;
+    applyAction(b.dataset.a, +card.dataset.pos);
+  });
+
+  /* drag with the mouse or a finger, plus click-to-enlarge */
+  let drag = null;
+  container.addEventListener("pointerdown", e => {
+    const card = e.target.closest(".card"); if (!card) return;
+    const onButton = e.target.closest("button[data-a]");
+    const onGrip = onButton && onButton.dataset.a === "grip";
+    if (onButton && !onGrip) return;                       // the arrows handle themselves
+    if (!onGrip && e.pointerType !== "mouse") return;      // on touch, dragging starts from the handle only
+    drag = { card, from: +card.dataset.pos, x: e.clientX, y: e.clientY, active: false, target: null, ghost: null };
+    if (onGrip) e.preventDefault();
+  });
+
+  window.addEventListener("pointermove", e => {
+    if (!drag) return;
+    if (!drag.active) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 7) return;
+      drag.active = true;
+      drag.card.classList.add("dragging");
+      const img = drag.card.querySelector("img");
+      const g = document.createElement("div");
+      g.className = "drag-ghost";
+      g.innerHTML = img ? "<img src='" + img.src + "' style='width:100%;display:block'>" : "<div style='padding:14px'>page</div>";
+      document.body.appendChild(g);
+      drag.ghost = g;
+    }
+    e.preventDefault();
+    drag.ghost.style.left = e.clientX + "px";
+    drag.ghost.style.top = e.clientY + "px";
+
+    if (e.clientY < 90) window.scrollBy(0, -16);
+    else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 16);
+
+    drag.ghost.style.visibility = "hidden";
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    drag.ghost.style.visibility = "visible";
+    const target = under && under.closest ? under.closest(".card") : null;
+    if (drag.target && drag.target !== target) drag.target.classList.remove("drop-here");
+    if (target && target !== drag.card) { target.classList.add("drop-here"); drag.target = target; }
+    else drag.target = null;
+  }, { passive: false });
+
+  window.addEventListener("pointerup", () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.ghost) d.ghost.remove();
+    d.card.classList.remove("dragging");
+    if (d.target) d.target.classList.remove("drop-here");
+
+    if (d.active) {
+      if (d.target) movePage(d.from, +d.target.dataset.pos);
+    } else {
+      /* a plain click: show the page enlarged */
+      openPreview(S.order, d.from, {
+        caption: (it, pos) => "position " + (pos + 1) + "  \u00b7  " +
+          (it.k === "main" ? "page " + (it.i + 1) + " of the working file" : esc(S.docs[it.k].name) + ", page " + (it.i + 1)) +
+          (it.rot ? "  \u00b7  rotated " + it.rot + "\u00b0" : ""),
+        action: {
+          label: () => "Rotate 90\u00b0",
+          run: (it, pos) => {
+            applyAction("rot", pos);
+            it.rot = S.order[pos].rot;
+          }
+        }
+      });
+    }
+  });
 }
 
 $("btnBuildOrg").addEventListener("click", async () => {
@@ -1599,7 +1765,6 @@ $("btnBuildOrg").addEventListener("click", async () => {
   btn.disabled = true; btn.textContent = "Building\u2026"; await frame();
 
   const doc = await PDFLib.PDFDocument.create();
-  /* one copyPages call per source document, in order of use */
   const bySrc = {};
   S.order.forEach((it, pos) => { (bySrc[it.k] = bySrc[it.k] || []).push({ i: it.i, pos }); });
   const copied = new Array(S.order.length);
@@ -1759,6 +1924,89 @@ $("btnPageTable").addEventListener("click", () => {
 });
 
 
+/* ============================ ENLARGED PREVIEW =========================== */
+/* One modal used by both the organise grid and the numbering grid.
+   items: [{k, i, rot}]  cfg: {caption(it,pos), action:{label(it,pos), run(it,pos)}} */
+const PREVIEW_CACHE = new Map();
+let previewState = null;
+
+async function bigPage(k, i) {
+  const key = k + ":big:" + i;
+  if (PREVIEW_CACHE.has(key)) return PREVIEW_CACHE.get(key);
+  const doc = S.docs[k];
+  if (!doc) return null;
+  const { canvas } = await renderCanvas(doc.pdfjs, i + 1, 1.35, false);
+  const url = canvas.toDataURL("image/jpeg", 0.85);
+  canvas.width = canvas.height = 1;
+  if (PREVIEW_CACHE.size > 40) PREVIEW_CACHE.clear();
+  PREVIEW_CACHE.set(key, url);
+  return url;
+}
+
+function openPreview(items, pos, cfg) {
+  cfg = cfg || {};
+  closePreview();
+  const box = document.createElement("div");
+  box.className = "modal";
+  box.innerHTML =
+    "<div class='sheet'>" +
+      "<div class='bar'><span class='cap' id='pvCap'>\u2026</span>" +
+      "<div class='btn-row'>" +
+        (cfg.action ? "<button class='small ghost' id='pvAct'></button>" : "") +
+        "<button class='small ghost' id='pvPrev'>\u25c0 previous</button>" +
+        "<button class='small ghost' id='pvNext'>next \u25b6</button>" +
+        "<button class='small' id='pvClose'>Close</button>" +
+      "</div></div>" +
+      "<img id='pvImg' alt='page preview'>" +
+    "</div>";
+  document.body.appendChild(box);
+  previewState = { box, items, pos, cfg };
+
+  box.addEventListener("click", e => { if (e.target === box) closePreview(); });
+  $("pvClose").addEventListener("click", closePreview);
+  $("pvPrev").addEventListener("click", () => step(-1));
+  $("pvNext").addEventListener("click", () => step(1));
+  if (cfg.action) $("pvAct").addEventListener("click", () => {
+    const st = previewState;
+    st.cfg.action.run(st.items[st.pos], st.pos);
+    paint();
+  });
+  document.addEventListener("keydown", keyNav);
+  paint();
+
+  function step(d) {
+    const st = previewState; if (!st) return;
+    st.pos = (st.pos + d + st.items.length) % st.items.length;
+    paint();
+  }
+  async function paint() {
+    const st = previewState; if (!st) return;
+    const it = st.items[st.pos];
+    $("pvCap").textContent = (st.cfg.caption ? st.cfg.caption(it, st.pos) : "page " + (it.i + 1)) +
+      "   \u00b7   " + (st.pos + 1) + " of " + st.items.length;
+    if (st.cfg.action) $("pvAct").textContent = st.cfg.action.label(it, st.pos);
+    const img = $("pvImg");
+    img.style.transform = it.rot ? "rotate(" + it.rot + "deg)" : "";
+    img.src = (await bigPage(it.k, it.i)) || "";
+  }
+  previewState.step = step;
+  previewState.paint = paint;
+}
+
+function keyNav(e) {
+  if (!previewState) return;
+  if (e.key === "Escape") closePreview();
+  else if (e.key === "ArrowLeft") previewState.step(-1);
+  else if (e.key === "ArrowRight") previewState.step(1);
+}
+
+function closePreview() {
+  document.removeEventListener("keydown", keyNav);
+  if (previewState && previewState.box) previewState.box.remove();
+  previewState = null;
+}
+
+
 /* ============================== NUMBER PAGES ============================= */
 const NUM = createNumberer(PDFLib);
 S.skip = new Set();
@@ -1813,6 +2061,31 @@ async function renderNumGrid() {
       refreshNumLabels();
     });
   });
+
+  /* click a page to see it enlarged and mark it blank from there */
+  grid.addEventListener("click", ev => {
+    if (ev.target.closest("label") || ev.target.closest("input")) return;
+    const card = ev.target.closest(".card"); if (!card) return;
+    const start = +card.dataset.i;
+    const items = Array.from({ length: S.eng.n }, (_, i) => ({ k: "main", i, rot: 0 }));
+    openPreview(items, start, {
+      caption: (it) => {
+        const plan = numberPlan();
+        return "page " + (it.i + 1) + " of " + S.eng.n + "  \u00b7  " +
+          (plan[it.i] == null ? "left blank" : "will be numbered " + plan[it.i]);
+      },
+      action: {
+        label: (it) => S.skip.has(it.i) ? "Not blank \u2014 number it" : "Mark as blank",
+        run: (it) => {
+          if (S.skip.has(it.i)) S.skip.delete(it.i); else S.skip.add(it.i);
+          const box = grid.querySelector(".skipbox[data-i='" + it.i + "']");
+          if (box) box.checked = S.skip.has(it.i);
+          refreshNumLabels();
+        }
+      }
+    });
+  });
+
   refreshNumLabels();
 }
 
@@ -1831,7 +2104,7 @@ function refreshNumLabels() {
   const note = $("numNote");
   if (note) note.innerHTML = "<b>" + numbered.length + " pages will be numbered</b>" +
     (numbered.length ? " \u2014 " + numbered[0] + " to " + numbered[numbered.length - 1] : "") +
-    ", " + (plan.length - numbered.length) + " left blank. Tick <b>blank</b> under any page that should not get a number.";
+    ", " + (plan.length - numbered.length) + " left blank. Click any page to see it enlarged; tick <b>blank</b> under any page that should not get a number.";
 }
 
 $("btnSuggestBlank").addEventListener("click", async () => {
