@@ -7,10 +7,38 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Photo_Toolkit_v3.3_2026-09-23.html
+  File: PDF_Photo_Toolkit_v3.4_2026-10-08.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v3.4  2026-10-08  ACTIONS INSIDE THE ENLARGED PAGE (organise tab).
+        Clicking a page used to open a picture with only "rotate",
+        so every other decision meant closing it, finding the small
+        card again and using its buttons. The enlarged view now has
+        its own action bar: turn left, right or 180 degrees; move to
+        the start, one back, one on, or to the end; put it before or
+        after any position, or swap it with one, by typing the
+        position number; duplicate it; add a blank page before or
+        after it, the same size as the page; insert pages of another
+        PDF straight before or after it, with a page range; remove
+        it; save it as a PDF on its own.
+        A strip of the three pages either side runs under the
+        picture, so "before" and "after" are judged by sight, and
+        tapping one jumps to it. The view follows the page when it is
+        moved, and after a removal it shows the page that followed.
+        Every change - here, in the grid, by dragging, by typed
+        order, by insert or by reset - can now be undone, from the
+        enlarged view, with Ctrl+Z, or with the new "Undo last
+        change" button beside "Reset to original order"; up to 60
+        steps are kept.
+        Keys in the enlarged view: arrows browse, Shift+arrows move
+        the page, R and Shift+R turn it, Delete removes it, Home/End
+        send it to the start or end, Esc closes. Arrow keys are
+        ignored while a position number is being typed. On closing,
+        the grid scrolls to where the page now sits and marks it.
+        Also fixed: a page listed twice in a typed order shared one
+        rotation between the two copies; they are now separate.
 
   v3.3  2026-09-23  AUTOMATIC BACKGROUND REMOVAL, to any background.
         The old method flooded inward from the edges of the picture
@@ -443,6 +471,31 @@
   .modal{position:fixed; inset:0; background:rgba(18,32,43,.74); display:flex; align-items:center; justify-content:center; z-index:50; padding:18px}
   .modal .sheet{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px; max-width:min(940px,96vw); max-height:94vh; display:flex; flex-direction:column; gap:10px}
   .modal img{max-width:100%; max-height:74vh; object-fit:contain; border:1px solid var(--line); background:#fff; margin:0 auto}
+  .modal .sheet{overflow:auto}
+  .modal .sheet.has-tools #pvImg{max-height:52vh}
+  /* neighbouring pages, so "before" and "after" can be judged by eye */
+  .pv-strip{display:flex; gap:6px; justify-content:center; overflow-x:auto; padding:2px 2px 4px}
+  .pv-strip .st{flex:0 0 auto; width:52px; text-align:center; cursor:pointer; font-family:var(--mono); font-size:11px; color:var(--muted)}
+  .pv-strip .st img{width:52px; height:68px; max-height:none; object-fit:contain; border:1px solid var(--line); background:#fff; display:block; margin:0}
+  .pv-strip .st.cur{color:var(--accent); font-weight:700}
+  .pv-strip .st.cur img{outline:2px solid var(--accent); outline-offset:1px}
+  .pv-strip .gap{flex:0 0 auto; width:52px}
+  /* the action bar inside the enlarged page */
+  .pv-tools{display:flex; flex-wrap:wrap; gap:8px 16px; border-top:1px solid var(--line); padding-top:10px}
+  .pv-group{display:flex; flex-wrap:wrap; gap:5px; align-items:center}
+  .pv-lbl{font-size:12px; color:var(--muted); font-weight:650; margin-right:2px}
+  .pv-tools button{padding:5px 10px; font-size:13px; background:var(--panel); color:var(--accent); border-color:var(--line)}
+  .pv-tools button:hover{background:var(--accent-soft)}
+  .pv-tools button:disabled{opacity:.4}
+  .pv-tools button.danger{color:var(--bad); border-color:#e3b9b9}
+  .pv-tools button.danger:hover{background:var(--bad-soft)}
+  .pv-tools button.go{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .pv-tools input,.pv-tools select{padding:5px 8px; font-size:13px}
+  .pv-msg{font-size:13px; min-height:20px; color:var(--muted)}
+  .pv-msg b{color:var(--ink)}
+  .pv-msg button{padding:2px 9px; font-size:12.5px; margin-left:6px}
+  .pv-keys{font-size:11.5px; color:var(--muted); font-family:var(--mono)}
+  .card.flash{outline:3px solid var(--warn); outline-offset:2px; transition:outline-color .6s}
   .modal .bar{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
   .modal .cap{font-family:var(--mono); font-size:13px; color:var(--muted)}
 
@@ -499,7 +552,7 @@
       <h1>PDF &amp; photo toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-09-23 · v3.3</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-08 · v3.4</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -694,11 +747,12 @@
   <!-- ---------- ORGANISE ---------- -->
   <div class="panel" id="tab-organise" hidden data-locked="true">
     <h2>Organise pages</h2>
-    <p class="hint">Click a page to see it enlarged. Drag the ⠿ handle to move it (on a desktop you can drag the thumbnail itself), or use the arrows. Insert another PDF before, after or in the middle. Nothing changes the working file until you press Build.</p>
+    <p class="hint">Click a page to see it enlarged — the enlarged view has its own buttons to remove, turn, move it before or after any position, duplicate it, or add a blank page or another PDF beside it. Drag the ⠿ handle to move it (on a desktop you can drag the thumbnail itself), or use the arrows. Insert another PDF before, after or in the middle. Nothing changes the working file until you press Build.</p>
 
     <div class="btn-row">
       <button id="btnThumbs" class="ghost">Load page thumbnails</button>
       <button id="btnResetOrder" class="ghost">Reset to original order</button>
+      <button id="btnOrgUndo" class="ghost">Undo last change</button>
     </div>
 
     <h3>Insert another PDF</h3>
@@ -1220,7 +1274,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Photo_Toolkit_v3.3_2026-09-23</span>
+    <span>PDF_Photo_Toolkit_v3.4_2026-10-08</span>
   </footer>
 </div>
 
@@ -2932,6 +2986,7 @@ $("btnInsert").addEventListener("click", async () => {
   if (!order.length) { out.innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "No pages selected from that file.") + "</div>"; return; }
   const items = order.map(i => ({ k: key, i, rot: 0 }));
 
+  orgSnap("insert " + S.pendingIns.name);
   const where = $("insWhere").value;
   if (where === "start") S.order = items.concat(S.order);
   else if (where === "end") S.order = S.order.concat(items);
@@ -2945,6 +3000,7 @@ $("btnInsert").addEventListener("click", async () => {
 });
 
 $("btnResetOrder").addEventListener("click", async () => {
+  orgSnap("reset to the original order");
   S.order = Array.from({ length: S.eng.n }, (_, i) => ({ k: "main", i, rot: 0 }));
   $("orgOut").innerHTML = "<div class='note'>Back to the original order. Inserted pages removed.</div>";
   await renderGrid();
@@ -2956,7 +3012,9 @@ $("btnApplyOrder").addEventListener("click", async () => {
   const txt = $("orderBox").value.trim();
   const { order, errors } = DET.parseOrder(txt.replace(/end|last/gi, String(S.order.length)), S.order.length);
   if (!order.length) { $("orgOut").innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "Nothing to apply.") + "</div>"; return; }
-  S.order = order.map(p => S.order[p]).filter(Boolean);
+  orgSnap("typed order");
+  /* copies, so a page listed twice can be turned on its own */
+  S.order = order.map(p => S.order[p]).filter(Boolean).map(o => Object.assign({}, o));
   $("orgOut").innerHTML = "<div class='note good'>New order applied \u2014 " + S.order.length + " pages.</div>" +
     (errors.length ? "<div class='note warn'>" + errors.map(esc).join("<br>") + "</div>" : "");
   await renderGrid();
@@ -2974,9 +3032,29 @@ async function thumb(k, i) {
 }
 
 function cardLabel(it, pos) {
-  return (pos + 1) + " \u2190 " + (it.k === "main" ? "p" + (it.i + 1)
-    : esc(S.docs[it.k].name.slice(0, 8)) + " p" + (it.i + 1)) + (it.rot ? " \u00b7 " + it.rot + "\u00b0" : "");
+  const src = it.k === "main" ? "p" + (it.i + 1)
+    : (String(it.k).indexOf("blank") === 0 ? "blank" : esc(S.docs[it.k].name.slice(0, 8)) + " p" + (it.i + 1));
+  return (pos + 1) + " \u2190 " + src + (it.rot ? " \u00b7 " + it.rot + "\u00b0" : "");
 }
+
+/* ---- undo: every change to the page order keeps the order before it ---- */
+S.orgUndo = [];
+function orgSnap(label) {
+  if (S.orgBatch) return;
+  S.orgUndo.push({ label, order: S.order.map(o => Object.assign({}, o)) });
+  if (S.orgUndo.length > 60) S.orgUndo.shift();
+}
+async function orgUndo() {
+  const snap = S.orgUndo.pop();
+  if (!snap) return null;
+  S.order = snap.order;
+  await renderGrid();
+  return snap.label;
+}
+$("btnOrgUndo").addEventListener("click", async () => {
+  const what = await orgUndo();
+  $("orgOut").innerHTML = what ? "<div class='note'>Undone: " + esc(what) + ".</div>" : "<div class='note'>Nothing to undo.</div>";
+});
 
 function makeCard(it, pos) {
   const card = document.createElement("div");
@@ -3022,7 +3100,7 @@ async function renderGrid() {
 function orgNote() {
   const n = $("orgNote");
   if (n) n.innerHTML = S.order.length + " pages in the new order. Coloured cards come from an inserted file. " +
-    "<b>Click a page to see it enlarged</b>, drag the \u283f handle to move it, or use the arrows. " +
+    "<b>Click a page to see it enlarged</b> \u2014 remove it, turn it, or put it before or after any position from there. Drag the \u283f handle to move it, or use the arrows. " +
     "The label shows <code>position \u2190 source page</code>.";
 }
 
@@ -3039,6 +3117,8 @@ function relabel() {
 
 function applyAction(a, pos) {
   const grid = $("grid"); if (!grid) return;
+  orgSnap({ left: "move back", right: "move on", rot: "turn page " + (pos + 1), rotl: "turn page " + (pos + 1),
+            rot180: "turn page " + (pos + 1), del: "remove page at position " + (pos + 1) }[a] || a);
   const cards = grid.children;
   if (a === "left" && pos > 0) {
     [S.order[pos - 1], S.order[pos]] = [S.order[pos], S.order[pos - 1]];
@@ -3048,8 +3128,8 @@ function applyAction(a, pos) {
     [S.order[pos + 1], S.order[pos]] = [S.order[pos], S.order[pos + 1]];
     grid.insertBefore(cards[pos + 1], cards[pos]);
     relabel();
-  } else if (a === "rot") {
-    S.order[pos].rot = (S.order[pos].rot + 90) % 360;
+  } else if (a === "rot" || a === "rotl" || a === "rot180") {
+    S.order[pos].rot = (S.order[pos].rot + (a === "rotl" ? 270 : a === "rot180" ? 180 : 90)) % 360;
     const img = cards[pos].querySelector("img");
     if (img) img.style.transform = "rotate(" + S.order[pos].rot + "deg)";
     relabel();
@@ -3063,7 +3143,9 @@ function applyAction(a, pos) {
 
 /* Move a page from one position to another (used by dragging). */
 function movePage(from, to) {
+  to = Math.max(0, Math.min(S.order.length - 1, to));
   if (from === to || from < 0 || to < 0 || from >= S.order.length) return;
+  orgSnap("move page from position " + (from + 1) + " to " + (to + 1));
   const it = S.order.splice(from, 1)[0];
   S.order.splice(to, 0, it);
   const grid = $("grid");
@@ -3133,21 +3215,261 @@ function bindGrid(container) {
     if (d.active) {
       if (d.target) movePage(d.from, +d.target.dataset.pos);
     } else {
-      /* a plain click: show the page enlarged */
-      openPreview(S.order, d.from, {
-        caption: (it, pos) => "position " + (pos + 1) + "  \u00b7  " +
-          (it.k === "main" ? "page " + (it.i + 1) + " of the working file" : esc(S.docs[it.k].name) + ", page " + (it.i + 1)) +
-          (it.rot ? "  \u00b7  rotated " + it.rot + "\u00b0" : ""),
-        action: {
-          label: () => "Rotate 90\u00b0",
-          run: (it, pos) => {
-            applyAction("rot", pos);
-            it.rot = S.order[pos].rot;
-          }
-        }
-      });
+      /* a plain click: show the page enlarged, with its own actions */
+      openOrgPreview(d.from);
     }
   });
+}
+
+
+/* =================== ENLARGED PAGE WITH ITS OWN ACTIONS =================== */
+const ORG_TOOLS_HTML =
+  "<div class='pv-group'><span class='pv-lbl'>Turn</span>" +
+    "<button data-t='rotl' title='turn left (Shift+R)'>↺ left</button>" +
+    "<button data-t='rotr' title='turn right (R)'>↻ right</button>" +
+    "<button data-t='rot180'>180°</button></div>" +
+  "<div class='pv-group'><span class='pv-lbl'>Move</span>" +
+    "<button data-t='first' title='Home'>⏮ to start</button>" +
+    "<button data-t='back' title='Shift+←'>◀ one back</button>" +
+    "<button data-t='fwd' title='Shift+→'>one on ▶</button>" +
+    "<button data-t='last' title='End'>to end ⏭</button></div>" +
+  "<div class='pv-group'><span class='pv-lbl'>Put it</span>" +
+    "<select id='pvWhere'><option value='before'>before</option><option value='after' selected>after</option><option value='swap'>swap with</option></select>" +
+    "<span class='pv-lbl' style='font-weight:400'>position</span>" +
+    "<input type='number' id='pvTarget' min='1' step='1' style='width:78px'>" +
+    "<button data-t='place' class='go'>Go</button></div>" +
+  "<div class='pv-group'><span class='pv-lbl'>Add</span>" +
+    "<button data-t='dup'>Duplicate</button>" +
+    "<button data-t='blankb'>Blank page before</button>" +
+    "<button data-t='blanka'>Blank page after</button></div>" +
+  "<div class='pv-group'><span class='pv-lbl'>Insert PDF</span>" +
+    "<span class='pv-lbl' style='font-weight:400'>pages</span>" +
+    "<input type='text' id='pvInsPages' value='1-end' style='width:90px'>" +
+    "<button data-t='insb'>before this…</button>" +
+    "<button data-t='insa'>after this…</button></div>" +
+  "<div class='pv-group'>" +
+    "<button data-t='del' class='danger' title='Delete'>✕ Remove this page</button>" +
+    "<button data-t='save'>Save this page as PDF</button>" +
+    "<button data-t='undo' title='Ctrl+Z'>↶ Undo</button></div>" +
+  "<div class='pv-keys' style='flex-basis:100%'>Keys: ← → browse · Shift+← → move · R / Shift+R turn · Delete remove · Ctrl+Z undo · Esc close</div>";
+
+function orgCaption(it, pos) {
+  const k = String(it.k);
+  return "position " + (pos + 1) + "  ·  " +
+    (k === "main" ? "page " + (it.i + 1) + " of the working file"
+      : k.indexOf("blank") === 0 ? "blank page"
+      : esc(S.docs[it.k].name) + ", page " + (it.i + 1)) +
+    (it.rot ? "  ·  turned " + it.rot + "°" : "");
+}
+
+/* A blank page the size of the page it sits beside. */
+async function blankFor(it) {
+  let w = 595.28, h = 841.89;
+  try {
+    const pg = S.docs[it.k].lib.getPage(it.i);
+    const sz = pg.getSize(); w = sz.width; h = sz.height;
+  } catch (e) {}
+  const key = "blank_" + Math.round(w) + "x" + Math.round(h);
+  if (!S.docs[key]) {
+    const d = await PDFLib.PDFDocument.create();
+    d.addPage([w, h]);
+    const bytes = await d.save();
+    const lib = await PDFLib.PDFDocument.load(bytes);
+    const pj = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+    S.docs[key] = { lib, pdfjs: pj, name: "blank page" };
+  }
+  return { k: key, i: 0, rot: it.rot || 0 };
+}
+
+function pickPdf() {
+  return new Promise(res => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "application/pdf,.pdf";
+    inp.addEventListener("change", () => res(inp.files[0] || null));
+    inp.click();
+  });
+}
+
+function undoLink(text) {
+  return text + " <button class='ghost' data-t='undo'>Undo</button>";
+}
+
+function openOrgPreview(startPos) {
+  openPreview(S.order, startPos, {
+    caption: orgCaption,
+    strip: it => thumb(it.k, it.i),
+    tools: {
+      html: ORG_TOOLS_HTML,
+      bind: (root, api) => {
+        root.closest(".sheet").addEventListener("click", ev => {
+          const b = ev.target.closest("button[data-t]");
+          if (b && !b.disabled) orgTool(b.dataset.t, api);
+        });
+        root.querySelector("#pvTarget").addEventListener("keydown", ev => {
+          if (ev.key === "Enter") { ev.preventDefault(); orgTool("place", api); }
+        });
+      },
+      update: (root, it, pos, items) => {
+        const n = items.length;
+        root.querySelector("[data-t='first']").disabled = pos === 0;
+        root.querySelector("[data-t='back']").disabled = pos === 0;
+        root.querySelector("[data-t='fwd']").disabled = pos >= n - 1;
+        root.querySelector("[data-t='last']").disabled = pos >= n - 1;
+        root.querySelector("[data-t='undo']").disabled = !S.orgUndo.length;
+        const t = root.querySelector("#pvTarget");
+        t.max = String(n);
+        t.placeholder = "1–" + n;
+      }
+    },
+    onKey: (e, api) => {
+      const map = { Delete: "del", Home: "first", End: "last" };
+      if (e.key === "ArrowLeft" && e.shiftKey) { orgTool("back", api); return true; }
+      if (e.key === "ArrowRight" && e.shiftKey) { orgTool("fwd", api); return true; }
+      if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey)) { orgTool("undo", api); return true; }
+      if (e.key === "r" || e.key === "R") { orgTool(e.shiftKey ? "rotl" : "rotr", api); return true; }
+      if (map[e.key]) { orgTool(map[e.key], api); return true; }
+      return false;
+    },
+    onClose: pos => {
+      /* back in the grid, show where that page now sits */
+      const grid = $("grid"); if (!grid) return;
+      const card = grid.children[Math.min(pos, grid.children.length - 1)];
+      if (!card) return;
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("flash");
+      setTimeout(() => card.classList.remove("flash"), 1400);
+    }
+  });
+}
+
+async function orgTool(t, api) {
+  const st = api.state(); if (!st) return;
+  let pos = st.pos;
+  const it = S.order[pos];
+  const n = S.order.length;
+  const where = p => "position " + (p + 1) + (n > 1 ? " of " + S.order.length : "");
+
+  if (t === "rotl" || t === "rotr" || t === "rot180") {
+    applyAction(t === "rotr" ? "rot" : t, pos);
+    api.note(undoLink("Turned to <b>" + S.order[pos].rot + "°</b>."));
+    api.refresh();
+    return;
+  }
+  if (t === "first" || t === "back" || t === "fwd" || t === "last") {
+    const to = t === "first" ? 0 : t === "last" ? n - 1 : t === "back" ? pos - 1 : pos + 1;
+    if (to < 0 || to >= n || to === pos) return;
+    movePage(pos, to);
+    api.setItems(S.order); api.setPos(to);
+    api.note(undoLink("Moved to <b>" + where(to) + "</b>."));
+    return;
+  }
+  if (t === "place") {
+    const box = $("pvTarget");
+    const target = parseInt(box.value, 10);
+    if (!(target >= 1 && target <= n)) {
+      api.note("<span style='color:var(--bad)'>Type a position from 1 to " + n + " first.</span>");
+      box.focus(); return;
+    }
+    const tIdx = target - 1, mode = $("pvWhere").value;
+    if (tIdx === pos) { api.note("That is this page’s own position."); return; }
+    if (mode === "swap") {
+      orgSnap("swap positions " + (pos + 1) + " and " + target);
+      S.orgBatch = true;
+      const a = Math.min(pos, tIdx), b = Math.max(pos, tIdx);
+      movePage(a, b); movePage(b - 1, a);
+      S.orgBatch = false;
+      api.setItems(S.order); api.setPos(tIdx);
+      api.note(undoLink("Swapped with position " + target + " — this page is now at <b>" + where(tIdx) + "</b>."));
+    } else {
+      /* where the page lands once it has been lifted out of its old place */
+      let to = mode === "before" ? (pos < tIdx ? tIdx - 1 : tIdx) : (pos < tIdx ? tIdx : tIdx + 1);
+      to = Math.max(0, Math.min(n - 1, to));
+      if (to === pos) { api.note("It is already " + mode + " position " + target + "."); return; }
+      movePage(pos, to);
+      api.setItems(S.order); api.setPos(to);
+      api.note(undoLink("Put " + mode + " the page that was at position " + target + " — now at <b>" + where(to) + "</b>."));
+    }
+    box.value = "";
+    return;
+  }
+  if (t === "dup") {
+    orgSnap("duplicate position " + (pos + 1));
+    S.order.splice(pos + 1, 0, Object.assign({}, it));
+    await renderGrid();
+    api.setItems(S.order); api.refresh();
+    api.note(undoLink("Copy placed straight after it, at <b>position " + (pos + 2) + "</b>."));
+    return;
+  }
+  if (t === "blankb" || t === "blanka") {
+    const blank = await blankFor(it);
+    orgSnap("blank page " + (t === "blankb" ? "before" : "after") + " position " + (pos + 1));
+    const at = t === "blankb" ? pos : pos + 1;
+    S.order.splice(at, 0, blank);
+    await renderGrid();
+    api.setItems(S.order);
+    api.setPos(t === "blankb" ? pos + 1 : pos);   // stay on the same page
+    api.note(undoLink("Blank page added at <b>position " + (at + 1) + "</b>, the same size as this page."));
+    return;
+  }
+  if (t === "insb" || t === "insa") {
+    const file = await pickPdf();
+    if (!file) return;
+    api.note("Reading " + esc(file.name) + "…");
+    let lib, pj;
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      lib = await PDFLib.PDFDocument.load(bytes.slice(), { ignoreEncryption: true });
+      pj = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+    } catch (err) {
+      api.note("<span style='color:var(--bad)'>That file could not be opened: " + esc(err.message) + "</span>");
+      return;
+    }
+    const cnt = lib.getPageCount();
+    const spec = ($("pvInsPages").value || "1-end").replace(/end|last/gi, String(cnt));
+    const { order, errors } = DET.parseOrder(spec, cnt);
+    if (!order.length) {
+      api.note("<span style='color:var(--bad)'>" + (errors.map(esc).join("; ") || "No pages selected") + " — that file has " + cnt + " pages.</span>");
+      return;
+    }
+    const key = "ins" + (++S.insCount);
+    S.docs[key] = { lib, pdfjs: pj, name: file.name };
+    orgSnap("insert " + file.name);
+    const at = t === "insb" ? pos : pos + 1;
+    S.order.splice(at, 0, ...order.map(i => ({ k: key, i, rot: 0 })));
+    await renderGrid();
+    api.setItems(S.order);
+    api.setPos(t === "insb" ? pos + order.length : pos);
+    api.note(undoLink("<b>" + order.length + " page" + (order.length === 1 ? "" : "s") + "</b> of " + esc(file.name) +
+      " inserted at positions " + (at + 1) + "–" + (at + order.length) + " (shown coloured in the grid)." +
+      (errors.length ? " Skipped: " + errors.map(esc).join("; ") + "." : "")));
+    return;
+  }
+  if (t === "del") {
+    if (n <= 1) { api.note("This is the only page left — it cannot be removed."); return; }
+    const label = orgCaption(it, pos).replace(/^position \d+\s+·\s+/, "");
+    applyAction("del", pos);
+    api.setItems(S.order);
+    api.setPos(Math.min(pos, S.order.length - 1));
+    api.note(undoLink("Removed " + label + ". Showing the page that followed it."));
+    return;
+  }
+  if (t === "save") {
+    const d = await PDFLib.PDFDocument.create();
+    const [pg] = await d.copyPages(S.docs[it.k].lib, [it.i]);
+    if (it.rot) pg.setRotation(PDFLib.degrees((pg.getRotation().angle + it.rot) % 360));
+    d.addPage(pg);
+    const bytes = await d.save();
+    const stem = (S.eng && S.eng.stem) || "page";
+    saveBlob(new Blob([bytes], { type: "application/pdf" }), stem + "_position" + (pos + 1) + ".pdf");
+    api.note("Saved position " + (pos + 1) + " as its own PDF.");
+    return;
+  }
+  if (t === "undo") {
+    const what = await orgUndo();
+    api.setItems(S.order);
+    api.setPos(Math.min(pos, S.order.length - 1));
+    api.note(what ? "Undone: " + esc(what) + "." : "Nothing left to undo.");
+  }
 }
 
 $("btnBuildOrg").addEventListener("click", async () => {
@@ -3436,15 +3758,18 @@ function openPreview(items, pos, cfg) {
   const box = document.createElement("div");
   box.className = "modal";
   box.innerHTML =
-    "<div class='sheet'>" +
-      "<div class='bar'><span class='cap' id='pvCap'>\u2026</span>" +
+    "<div class='sheet" + (cfg.tools ? " has-tools" : "") + "'>" +
+      "<div class='bar'><span class='cap' id='pvCap'>…</span>" +
       "<div class='btn-row'>" +
         (cfg.action ? "<button class='small ghost' id='pvAct'></button>" : "") +
-        "<button class='small ghost' id='pvPrev'>\u25c0 previous</button>" +
-        "<button class='small ghost' id='pvNext'>next \u25b6</button>" +
+        "<button class='small ghost' id='pvPrev'>◀ previous</button>" +
+        "<button class='small ghost' id='pvNext'>next ▶</button>" +
         "<button class='small' id='pvClose'>Close</button>" +
       "</div></div>" +
       "<img id='pvImg' alt='page preview'>" +
+      (cfg.strip ? "<div class='pv-strip' id='pvStrip'></div>" : "") +
+      (cfg.tools ? "<div class='pv-tools' id='pvTools'>" + cfg.tools.html + "</div>" +
+                   "<div class='pv-msg' id='pvMsg'></div>" : "") +
     "</div>";
   document.body.appendChild(box);
   previewState = { box, items, pos, cfg };
@@ -3459,22 +3784,58 @@ function openPreview(items, pos, cfg) {
     paint();
   });
   document.addEventListener("keydown", keyNav);
+
+  const api = {
+    state: () => previewState,
+    refresh: () => paint(),
+    setItems: arr => { if (previewState) previewState.items = arr; },
+    setPos: n => { if (!previewState) return; previewState.pos = n; paint(); },
+    close: () => closePreview(),
+    note: html => { const m = $("pvMsg"); if (m) m.innerHTML = html || ""; }
+  };
+  previewState.api = api;
+  if (cfg.tools && cfg.tools.bind) cfg.tools.bind($("pvTools"), api);
   paint();
 
   function step(d) {
-    const st = previewState; if (!st) return;
+    const st = previewState; if (!st || !st.items.length) return;
     st.pos = (st.pos + d + st.items.length) % st.items.length;
     paint();
   }
   async function paint() {
     const st = previewState; if (!st) return;
+    if (!st.items.length) { closePreview(); return; }
+    st.pos = Math.max(0, Math.min(st.items.length - 1, st.pos));
     const it = st.items[st.pos];
     $("pvCap").textContent = (st.cfg.caption ? st.cfg.caption(it, st.pos) : "page " + (it.i + 1)) +
-      "   \u00b7   " + (st.pos + 1) + " of " + st.items.length;
+      "   ·   " + (st.pos + 1) + " of " + st.items.length;
     if (st.cfg.action) $("pvAct").textContent = st.cfg.action.label(it, st.pos);
+    if (st.cfg.tools && st.cfg.tools.update) st.cfg.tools.update($("pvTools"), it, st.pos, st.items);
+    if (st.cfg.strip) paintStrip(st);
     const img = $("pvImg");
+    const wantKey = it.k + ":" + it.i;
+    img.dataset.want = wantKey;
     img.style.transform = it.rot ? "rotate(" + it.rot + "deg)" : "";
-    img.src = (await bigPage(it.k, it.i)) || "";
+    const url = await bigPage(it.k, it.i);
+    if (img.dataset.want === wantKey) img.src = url || "";
+  }
+  function paintStrip(st) {
+    const strip = $("pvStrip"); if (!strip) return;
+    const R = 3;
+    let h = "";
+    for (let p = st.pos - R; p <= st.pos + R; p++) {
+      if (p < 0 || p >= st.items.length) { h += "<div class='gap'></div>"; continue; }
+      h += "<div class='st" + (p === st.pos ? " cur" : "") + "' data-p='" + p + "'><img alt='' data-p='" + p + "'>" + (p + 1) + "</div>";
+    }
+    strip.innerHTML = h;
+    strip.querySelectorAll(".st").forEach(el => {
+      const p = +el.dataset.p, it = st.items[p];
+      el.addEventListener("click", () => api.setPos(p));
+      st.cfg.strip(it).then(url => {
+        const im = el.querySelector("img");
+        if (im && url) { im.src = url; if (it.rot) im.style.transform = "rotate(" + it.rot + "deg)"; }
+      });
+    });
   }
   previewState.step = step;
   previewState.paint = paint;
@@ -3482,15 +3843,21 @@ function openPreview(items, pos, cfg) {
 
 function keyNav(e) {
   if (!previewState) return;
-  if (e.key === "Escape") closePreview();
+  if (e.key === "Escape") { closePreview(); return; }
+  /* typing a position number must not flip pages */
+  if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (previewState.cfg.onKey && previewState.cfg.onKey(e, previewState.api)) { e.preventDefault(); return; }
+  if (false) {}
   else if (e.key === "ArrowLeft") previewState.step(-1);
   else if (e.key === "ArrowRight") previewState.step(1);
 }
 
 function closePreview() {
   document.removeEventListener("keydown", keyNav);
-  if (previewState && previewState.box) previewState.box.remove();
+  const st = previewState;
+  if (st && st.box) st.box.remove();
   previewState = null;
+  if (st && st.cfg && st.cfg.onClose) st.cfg.onClose(st.pos, st.items);
 }
 
 
