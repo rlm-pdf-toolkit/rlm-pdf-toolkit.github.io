@@ -3,14 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PDF & photo toolkit — split, compress, organise, number, stamp, photo</title>
+<title>PDF & photo toolkit — split, compress, organise, fill, number, stamp, photo</title>
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Photo_Toolkit_v3.5_2026-10-08.html
+  File: PDF_Photo_Toolkit_v3.6_2026-10-27.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v3.6  2026-10-27  FILL & EDIT tab - write on the PDF itself.
+        Click anywhere on a page to type. The new text takes the
+        font, size and colour of the printed text beside the click,
+        and when the click is on the same line it is put on that
+        line's baseline, so filling a blank after "Name:" lines up
+        with it. Fonts are matched to the nearest of the built-in
+        PDF fonts (Helvetica/Arial, Times, Courier) with the same
+        weight and slant; the colour is measured from the ink of the
+        printed text. On a scanned page, which has no text inside,
+        the size and colour are measured from the line of ink beside
+        the click instead.
+        Also: today's date in the matched font; tick, cross and dot,
+        sized to the text beside them; line (Shift keeps it level),
+        outlined box, circle round something, white-out and
+        highlight; and pictures - from a file, the finished photo of
+        the Photo & sign tab, or the signature of the Number & stamp
+        tab - placed by a click, width in mm, with "blend into the
+        paper" for a signature or seal.
+        Every item can be selected, moved, resized from its corner,
+        nudged with the arrow keys, recoloured, duplicated, copied to
+        every page at the same place, or deleted, with undo. A list
+        of everything added, page by page, jumps to any item.
+        Written as real text and vector lines over the untouched
+        page, so it prints sharp, stays searchable and adds little
+        to the file. Correct on pages saved turned and on pages
+        whose crop box is offset. Characters the built-in fonts
+        cannot write (Hindi, Tamil, the rupee sign) are named before
+        anything is written instead of being dropped.
 
   v3.5  2026-10-08  The enlarged page made readable again.
         v3.4 stacked the action buttons under the page, which cut the
@@ -480,6 +509,52 @@
   .preview img,.preview canvas{width:100%; border:1px solid var(--line); border-radius:4px; background:#fff}
   .preview figcaption{font-size:12.5px; color:var(--muted); font-family:var(--mono); margin-top:5px}
 
+  /* fill & edit */
+  body.wide-tab .wrap{max-width:min(1560px,98vw)}
+  .fill-top{position:sticky; top:0; z-index:5; background:var(--panel); padding:6px 0 8px; border-bottom:1px solid var(--line); margin-bottom:10px}
+  .fill-tools{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px}
+  .fill-tools button{padding:6px 10px; font-size:13px}
+  .fill-tools button.on{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .fill-hint{font-size:13px; color:var(--muted); margin-top:6px; min-height:18px}
+  #fillImgInput{display:none}
+  #fillImgPick{margin-top:6px}
+  #fillImgPick:empty{display:none}
+  .fill-wrap{display:flex; gap:16px; align-items:flex-start}
+  .fill-stage-wrap{flex:1 1 auto; min-width:0; max-height:84vh; overflow:auto; background:#dfe4e8; border:1px solid var(--line); border-radius:4px; padding:8px}
+  .fill-holder{position:relative; margin:0 auto; box-shadow:0 2px 10px rgba(16,28,38,.22); background:#fff}
+  .fill-page, .fill-overlay{position:absolute; left:0; top:0; display:block}
+  .fill-overlay{touch-action:none; outline:none}
+  .fill-side{flex:0 0 280px; position:sticky; top:150px; max-height:84vh; overflow:auto; border:1px solid var(--line); border-radius:5px; padding:12px; background:var(--panel)}
+  .fp-title{font-weight:650; font-size:14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px}
+  .fp-l{font-size:11.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 4px}
+  .fp-row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0; font-size:13px}
+  .fp-row label{display:flex; align-items:center; gap:5px}
+  .fp-row input[type=color]{width:40px; height:28px; padding:1px}
+  #fillProps textarea{width:100%; min-height:62px; font-size:14px}
+  .fp-note{font-size:12px; color:var(--muted); margin:4px 0 6px}
+  .fill-side button.danger{color:var(--bad); border-color:#e3b9b9}
+  .fl-page{font-size:12.5px; margin:4px 0; line-height:1.9}
+  .fl-chip{display:inline-block; border:1px solid var(--line); border-radius:3px; padding:0 6px; cursor:pointer; font-size:12px; background:var(--paper)}
+  .fl-chip.on{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
+  .fill-keys{font-size:11.5px; color:var(--muted); font-family:var(--mono); margin-top:10px; line-height:1.5}
+  @media (max-width:860px){
+    .fill-wrap{flex-direction:column}
+    .fill-side{position:static; flex:1 1 auto; width:100%; max-height:none}
+    .fill-stage-wrap{max-height:none; width:100%; padding:4px}
+    /* one scrolling row of tools, so the bar stays short */
+    .fill-top{padding:4px 0 6px}
+    .fill-top > .btn-row{flex-wrap:nowrap; overflow-x:auto; gap:6px}
+    .fill-top > .btn-row > *, #fillZoom{flex:0 0 auto; white-space:nowrap; flex-wrap:nowrap}
+    #btnFillShow{padding:8px 12px}
+    .fill-tools{flex-wrap:nowrap; overflow-x:auto; margin-top:6px; padding-bottom:2px; scrollbar-width:thin}
+    .fill-tools button{flex:0 0 auto; padding:8px 10px; white-space:nowrap}
+    .fill-hint{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; margin-top:4px}
+    /* the selected item's settings rise from the bottom, so the page stays in view while typing */
+    #fillProps.has-sel{position:fixed; left:0; right:0; bottom:0; z-index:45; background:var(--panel);
+      border-top:2px solid var(--accent); box-shadow:0 -6px 18px rgba(16,28,38,.18); max-height:42vh; overflow:auto; padding:10px 14px 14px}
+    #fillProps.has-sel textarea{min-height:48px}
+  }
+
   /* photo editor: previews stay on screen while the controls scroll */
   .photo-wrap{display:flex; gap:20px; align-items:flex-start}
   .photo-controls{flex:1 1 380px; min-width:0}
@@ -632,7 +707,7 @@
       <h1>PDF &amp; photo toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-08 · v3.5</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-27 · v3.6</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -677,6 +752,7 @@
     <button role="tab" data-tab="organise" aria-selected="false">Organise pages</button>
     <button role="tab" data-tab="number"   aria-selected="false">Number &amp; stamp</button>
     <button role="tab" data-tab="auto"     aria-selected="false">Auto-split</button>
+    <button role="tab" data-tab="fill"     aria-selected="false">Fill &amp; edit</button>
     <button role="tab" data-tab="photo"    aria-selected="false">Photo &amp; sign</button>
   </div>
 
@@ -1129,6 +1205,60 @@
   </div>
 
 
+
+  <!-- ---------- FILL & EDIT ---------- -->
+  <div class="panel" id="tab-fill" hidden data-locked="true">
+    <h2>Fill &amp; edit</h2>
+    <p class="hint">Type into a form, tick boxes, attach a photo or signature, draw a box or line, white-out or highlight — anywhere on any page. New text takes the <b>font, size and colour of the text beside where you click</b>, and lines up with it, so it reads as part of the page. Everything is drawn as real text and lines on top of the page; the page itself is not redrawn.</p>
+
+    <div class="fill-top">
+      <div class="btn-row">
+        <button id="btnFillShow">Show page</button>
+        <button id="btnFillPrev" class="ghost small" title="previous page">&#9664;</button>
+        <input type="number" id="fillPageNo" value="1" min="1" step="1" style="width:74px" aria-label="page number">
+        <span class="hint" style="margin:0" id="fillPageCount"></span>
+        <button id="btnFillNext" class="ghost small" title="next page">&#9654;</button>
+        <span id="fillZoom" class="btn-row" style="gap:4px">
+          <button data-fz="fit" class="ghost small">Fit width</button>
+          <button data-fz="out" class="ghost small" title="smaller">&minus;</button>
+          <button data-fz="in" class="ghost small" title="larger">+</button>
+        </span>
+      </div>
+      <div class="fill-tools" id="fillTools"></div>
+      <div class="fill-hint" id="fillHint"></div>
+      <div id="fillImgPick" class="btn-row"></div>
+      <input type="file" id="fillImgInput" accept="image/*">
+    </div>
+
+    <div class="fill-wrap">
+      <div class="fill-stage-wrap" id="fillStageWrap"><div class="note">Press <b>Show page</b> to open the first page.</div></div>
+      <aside class="fill-side">
+        <div id="fillProps"><div class="hint" style="margin:0">Pick a tool above and click the page. Click an item with <b>Select</b> to change it.</div></div>
+        <div id="fillList"></div>
+        <div class="fp-l" style="margin-top:14px">When there is nothing to match</div>
+        <div class="fp-row">
+          <select id="fillDefFont"><option>Helvetica</option><option>Times</option><option>Courier</option></select>
+          <label>size <input type="number" id="fillDefSize" value="11" min="4" max="72" step="0.5" style="width:64px"></label>
+        </div>
+        <div class="fp-row">
+          <label>Date as <select id="fillDateFmt"><option value="dash">27-10-2026</option><option value="slash">27/10/2026</option><option value="dot">27.10.2026</option></select></label>
+        </div>
+        <div class="fp-row">
+          <label>New picture width <input type="number" id="fillImgW" value="35" min="5" max="200" step="1" style="width:64px"> mm</label>
+        </div>
+        <div class="fill-keys">Delete removes · Ctrl+Z undo · Ctrl+D duplicate · arrows nudge (Shift: 10) · Shift while drawing a line keeps it straight · double-click text to edit it</div>
+        <div class="btn-row" style="margin-top:12px">
+          <button id="btnFillApply">Apply to the PDF</button>
+          <button id="btnFillUndo" class="ghost small">Undo</button>
+          <button id="btnFillClear" class="ghost small">Clear all</button>
+        </div>
+      </aside>
+    </div>
+    <div class="note" id="fillPageInfo"></div>
+    <div class="note">The match uses the nearest of the fonts every PDF reader carries — Helvetica (the Arial family), Times or Courier — in the same weight, slant, size and colour. A PDF keeps only the letters it already uses from its own font, so the original font itself cannot be reused for new words; on a typed form the difference is rarely visible. On a scanned page there is no text to read, so the size is measured from the line of ink beside your click.</div>
+    <div id="fillOut"></div>
+  </div>
+
   <!-- ---------- PHOTO & SIGNATURE ---------- -->
   <div class="panel" id="tab-photo" hidden>
     <h2>Photo &amp; signature for forms</h2>
@@ -1354,7 +1484,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Photo_Toolkit_v3.5_2026-10-08</span>
+    <span>PDF_Photo_Toolkit_v3.6_2026-10-27</span>
   </footer>
 </div>
 
@@ -2617,6 +2747,7 @@ async function setWorking(bytes, name, label) {
   lockAll(true);
   $("dropSub").textContent = name;
   ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut", "splitGridOut", "partsOut", "filesPreviewOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
+  if (typeof fillReset === "function") fillReset();
   S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); if (S.cuts) S.cuts.clear(); S.partNames = []; S.finalNames = null; if (typeof PREVIEW_CACHE !== "undefined") PREVIEW_CACHE.clear(); S.docs = {}; S.order = []; S.files = [];
 
   progress(0, 1, "Opening the file\u2026");
@@ -2650,7 +2781,7 @@ async function setWorking(bytes, name, label) {
 }
 
 function lockAll(on) {
-  ["tab-split", "tab-compress", "tab-organise", "tab-number", "tab-auto"].forEach(id => $(id).dataset.locked = on ? "true" : "false");
+  ["tab-split", "tab-compress", "tab-organise", "tab-number", "tab-auto", "tab-fill"].forEach(id => $(id).dataset.locked = on ? "true" : "false");
 }
 function progress(i, n, label) {
   $("progWrap").hidden = false; $("progLabel").hidden = false;
@@ -2713,7 +2844,10 @@ function drawStrip(parts) {
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 function showTab(name) {
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  ["split", "compress", "organise", "number", "auto", "photo"].forEach(t => $("tab-" + t).hidden = (t !== name));
+  ["split", "compress", "organise", "number", "auto", "fill", "photo"].forEach(t => $("tab-" + t).hidden = (t !== name));
+  /* writing on a page needs the room: this tab uses the full width of the screen */
+  document.body.classList.toggle("wide-tab", name === "fill");
+  if (name === "fill" && S.eng) fillShow(FILL.page, !FILL.view);
 }
 
 /* ================================ SPLIT ================================ */
@@ -5686,6 +5820,916 @@ function croppedAlpha(cw, ch, contentGuide) {
   if (soft) a = SEG.soften(a, cw, ch, soft);
   return a;
 }
+
+/* ============================ FILL & EDIT ================================ */
+/* Text, a photo or signature, and simple marks placed anywhere on a page.
+   Positions are kept in points, measured from the top-left of the page as
+   the reader sees it, so they survive zooming and are written into the PDF
+   correctly even on a page that is saved turned. */
+
+const FILL = {
+  page: 0, tool: "select", items: [], sel: null, undo: [], seq: 0,
+  zoom: "fit", factor: 1,
+  view: null,           // {w, h, scale, rot, canvas, textItems, pdfPage}
+  imgs: {},             // id -> {url, w, h, kind, el}
+  drag: null, pending: null
+};
+
+const FONT_CSS = {
+  Helvetica: "Arial, Helvetica, 'Liberation Sans', sans-serif",
+  Times: "'Times New Roman', Times, 'Liberation Serif', serif",
+  Courier: "'Courier New', Courier, 'Liberation Mono', monospace"
+};
+const MM_PT = 72 / 25.4;
+
+function fillReset() {
+  FILL.page = 0; FILL.items = []; FILL.sel = null; FILL.undo = []; FILL.view = null;
+  if ($("fillOut")) $("fillOut").innerHTML = "";
+  if ($("fillStageWrap")) $("fillStageWrap").innerHTML = "<div class='note'>Open this tab after loading a PDF, then press <b>Show page</b>.</div>";
+}
+
+/* ---------------------------------------------------------------- tools */
+const FILL_TOOLS = [
+  ["select", "↖ Select / move", "click an item to change it, drag to move, pull the corner to resize"],
+  ["text", "T  Text", "click where the text should start — its font, size and colour are taken from the text beside it"],
+  ["date", "📅 Date", "today’s date, in the font of the text beside it"],
+  ["tick", "✓ Tick", "click to place a tick"],
+  ["cross", "✗ Cross", "click to place a cross"],
+  ["dot", "● Dot", "click to place a filled dot"],
+  ["line", "— Line", "drag from one end to the other"],
+  ["rect", "▭ Box", "drag to draw an outlined box"],
+  ["ellipse", "◯ Circle", "drag to draw a circle or oval round something"],
+  ["white", "■ White-out", "drag over something to cover it with white"],
+  ["mark", "▉ Highlight", "drag over text to highlight it"],
+  ["image", "🖼 Photo / image", "choose a picture, then click where it goes"]
+];
+
+(function buildToolbar() {
+  const bar = $("fillTools");
+  bar.innerHTML = FILL_TOOLS.map(t => "<button class='ghost small' data-tool='" + t[0] + "' title='" + t[2] + "'>" + t[1] + "</button>").join("");
+  bar.addEventListener("click", e => {
+    const b = e.target.closest("button[data-tool]"); if (!b) return;
+    setTool(b.dataset.tool);
+  });
+  setTool("select");
+})();
+
+function setTool(t) {
+  FILL.tool = t;
+  document.querySelectorAll("#fillTools button").forEach(b => b.classList.toggle("on", b.dataset.tool === t));
+  const tip = FILL_TOOLS.find(x => x[0] === t);
+  $("fillHint").textContent = tip ? tip[2] : "";
+  const st = $("fillStage"); if (st) st.style.cursor = t === "select" ? "default" : "crosshair";
+  if (t === "image" && !FILL.pending) chooseImage();
+}
+
+/* ---------------------------------------------------------------- page */
+const fillNarrow = () => window.matchMedia("(max-width:860px)").matches;
+$("btnFillShow").addEventListener("click", () => fillShow(FILL.page, true));
+$("btnFillPrev").addEventListener("click", () => fillShow(FILL.page - 1, true));
+$("btnFillNext").addEventListener("click", () => fillShow(FILL.page + 1, true));
+$("fillPageNo").addEventListener("change", () => fillShow((parseInt($("fillPageNo").value, 10) || 1) - 1, true));
+$("fillZoom").addEventListener("click", e => {
+  const b = e.target.closest("button[data-fz]"); if (!b) return;
+  const z = b.dataset.fz;
+  if (z === "fit") { FILL.zoom = "fit"; FILL.factor = 1; }
+  else FILL.factor = Math.max(0.5, Math.min(3, FILL.factor * (z === "in" ? 1.25 : 0.8)));
+  if (z !== "fit") FILL.zoom = "zoom";
+  fillShow(FILL.page);
+});
+window.addEventListener("resize", () => { if (FILL.view && FILL.zoom === "fit" && !$("tab-fill").hidden) fillShow(FILL.page); });
+
+async function fillShow(n, focus) {
+  if (!S.eng || !S.pdfjs) return;
+  n = Math.max(0, Math.min(S.eng.n - 1, n));
+  FILL.page = n;
+  $("fillPageNo").value = n + 1;
+  $("fillPageCount").textContent = "of " + S.eng.n;
+  const wrap = $("fillStageWrap");
+  const page = await S.pdfjs.getPage(n + 1);
+  const base = page.getViewport({ scale: 1 });
+  /* fit the width, but no wider than about 1.9x actual size - beyond that use + */
+  const avail = Math.max(280, Math.min(wrap.clientWidth - 18, base.width * 1.9));
+  const fitScale = avail / base.width;
+  const scale = FILL.zoom === "fit" ? fitScale : fitScale * FILL.factor;
+  const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  const vp = page.getViewport({ scale: scale * dpr });
+  const pc = document.createElement("canvas");
+  pc.width = Math.floor(vp.width); pc.height = Math.floor(vp.height);
+  const pctx = pc.getContext("2d", { alpha: false });
+  pctx.fillStyle = "#fff"; pctx.fillRect(0, 0, pc.width, pc.height);
+  await page.render({ canvasContext: pctx, viewport: vp }).promise;
+
+  /* the text on this page, in view coordinates, for matching the font */
+  let textItems = [];
+  try {
+    const tc = await page.getTextContent();
+    const v1 = page.getViewport({ scale: 1 });
+    textItems = tc.items.filter(it => it.str && it.str.trim()).map(it => {
+      const m = pdfjsLib.Util.transform(v1.transform, it.transform);
+      const size = Math.hypot(m[2], m[3]);
+      const dirX = m[0] / (Math.hypot(m[0], m[1]) || 1), dirY = m[1] / (Math.hypot(m[0], m[1]) || 1);
+      const w = it.width * (v1.scale || 1);
+      return { str: it.str, x: m[4], y: m[5], size, w, horizontal: Math.abs(dirY) < 0.2 && dirX > 0,
+               fontName: it.fontName, family: (tc.styles[it.fontName] || {}).fontFamily || "" };
+    }).filter(t => t.size > 2);
+  } catch (e) { textItems = []; }
+
+  FILL.view = { w: base.width, h: base.height, scale, dpr, rot: base.rotation || 0, canvas: pc, textItems, pdfPage: page };
+
+  wrap.innerHTML = "";
+  const holder = document.createElement("div");
+  holder.className = "fill-holder";
+  holder.style.width = Math.round(base.width * scale) + "px";
+  holder.style.height = Math.round(base.height * scale) + "px";
+  pc.className = "fill-page";
+  pc.style.width = holder.style.width; pc.style.height = holder.style.height;
+  const ov = document.createElement("canvas");
+  ov.id = "fillStage";
+  ov.className = "fill-overlay";
+  ov.width = pc.width; ov.height = pc.height;
+  ov.style.width = holder.style.width; ov.style.height = holder.style.height;
+  ov.tabIndex = 0;
+  holder.appendChild(pc); holder.appendChild(ov);
+  wrap.appendChild(holder);
+  bindStage(ov);
+  setTool(FILL.tool === "image" && !FILL.pending ? "select" : FILL.tool);
+  if (FILL.sel && FILL.sel.page !== n) FILL.sel = null;
+  drawItems(); showProps(); listItems();
+  /* bring the page up under the tool bar when it is opened, if it is not already in view */
+  if (focus) {
+    const bar = document.querySelector(".fill-top");
+    const r = wrap.getBoundingClientRect();
+    if (r.top > window.innerHeight * 0.45 || r.top < 0) {
+      const top = r.top + window.scrollY - (bar ? bar.offsetHeight : 0) - 6;
+      window.scrollTo({ top: Math.max(0, top), behavior: "instant" in document.documentElement.style ? "instant" : "auto" });
+    }
+  }
+  const onPage = FILL.items.filter(i => i.page === n).length;
+  $("fillPageInfo").textContent = (textItems.length ? textItems.length + " pieces of text found on this page — new text will match them."
+    : "No text layer on this page (a scan) — text size and colour are estimated from the ink beside where you click.") +
+    (onPage ? "  ·  " + onPage + " item" + (onPage === 1 ? "" : "s") + " added here." : "");
+}
+
+/* ---------------------------------------------------------------- matching the font */
+function familyFromName(name, cssFamily) {
+  const n = String(name || "").replace(/^[A-Z]{6}\+/, "");
+  let family = "Helvetica";
+  if (/courier|mono|consol|lucida ?console|ocr/i.test(n) || /monospace/i.test(cssFamily)) family = "Courier";
+  else if (/times|roman|serif|georgia|garamond|cambria|book ?antiqua|palatino|century|bookman|minion|caslon|baskerville|bodoni|mangal|nirmala/i.test(n) && !/sans/i.test(n)) family = "Times";
+  else if (/^serif$/i.test(cssFamily)) family = "Times";
+  const bold = /bold|black|heavy|semibold|demibold|demi\b|,bd|-bd\b/i.test(n);
+  const italic = /italic|oblique|,it\b|-it\b/i.test(n);
+  return { family, bold, italic, shown: n };
+}
+
+/* colour of the darkest ink inside a box of the rendered page */
+function inkColour(x, y, w, h) {
+  const v = FILL.view; if (!v) return null;
+  const k = v.scale * v.dpr;
+  const X = Math.max(0, Math.floor(x * k)), Y = Math.max(0, Math.floor(y * k));
+  const W = Math.min(v.canvas.width - X, Math.ceil(w * k)), H = Math.min(v.canvas.height - Y, Math.ceil(h * k));
+  if (W < 2 || H < 2) return null;
+  const d = v.canvas.getContext("2d").getImageData(X, Y, W, H).data;
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) px.push([0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2], d[i], d[i + 1], d[i + 2]]);
+  px.sort((a, b) => a[0] - b[0]);
+  const take = px.slice(0, Math.max(3, Math.floor(px.length * 0.08)));
+  if (!take.length || take[take.length - 1][0] > 200) return null;
+  const avg = [0, 1, 2].map(c => Math.round(take.reduce((s, p) => s + p[c + 1], 0) / take.length));
+  /* very dark, near-neutral ink reads as plain black */
+  if (avg[0] < 70 && avg[1] < 70 && avg[2] < 70 && Math.max(...avg) - Math.min(...avg) < 25) return [0, 0, 0];
+  return avg;
+}
+/* Thin letters never reach full ink at screen size, so the colour is measured
+   again from that one word drawn eight times larger. */
+async function refineColour(it, box) {
+  const v = FILL.view; if (!v || !box || !v.pdfPage) return;
+  try {
+    const k = 8;
+    const vp = v.pdfPage.getViewport({ scale: k });
+    const c = document.createElement("canvas");
+    c.width = Math.max(4, Math.min(2400, Math.ceil(box.w * k)));
+    c.height = Math.max(4, Math.min(600, Math.ceil(box.h * k)));
+    const ctx = c.getContext("2d", { alpha: false });
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    await v.pdfPage.render({ canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, -box.x * k, -box.y * k] }).promise;
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    const px = [];
+    for (let i = 0; i < d.length; i += 4) px.push([0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2], d[i], d[i + 1], d[i + 2]]);
+    px.sort((a, b) => a[0] - b[0]);
+    const take = px.slice(0, Math.max(5, Math.floor(px.length * 0.03)));
+    if (!take.length || take[take.length - 1][0] > 200) return;
+    let col = [1, 2, 3].map(q => Math.round(take.reduce((sum, p) => sum + p[q], 0) / take.length));
+    if (Math.max(...col) < 45 && Math.max(...col) - Math.min(...col) < 18) col = [0, 0, 0];
+    c.width = c.height = 1;
+    if (FILL.items.indexOf(it) < 0) return;
+    it.colour = col;
+    drawItems(); if (FILL.sel === it) showProps();
+  } catch (e) {}
+}
+
+const toHex = c => "#" + c.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+
+/* For a click at (x, y): the font, size, colour and baseline to use. */
+function matchAt(x, y) {
+  const v = FILL.view;
+  const list = (v && v.textItems || []).filter(t => t.horizontal);
+  let best = null, bestD = Infinity;
+  for (const t of list) {
+    const top = t.y - t.size * 1.0, bot = t.y + t.size * 0.45;
+    const dy = y < top ? top - y : (y > bot ? y - bot : 0);
+    const dx = x < t.x ? t.x - x : (x > t.x + t.w ? x - (t.x + t.w) : 0);
+    /* the same line wins, however far along it; otherwise the nearest line above or below */
+    const d = dy === 0 ? dx * 0.05 : 40 + dy * 3 + dx * 0.6;
+    if (d < bestD) { bestD = d; best = t; }
+  }
+  if (best && bestD < 200) {
+    let nm = "";
+    try { const f = v.pdfPage.commonObjs.get(best.fontName); nm = (f && (f.name || f.loadedName)) || ""; } catch (e) {}
+    const fam = familyFromName(nm, best.family);
+    const sameLine = bestD < 40;
+    const col = inkColour(best.x, best.y - best.size * 0.8, Math.max(4, best.w), best.size) || [0, 0, 0];
+    return {
+      inkBox: { x: best.x, y: best.y - best.size * 0.85, w: Math.max(4, best.w), h: best.size * 1.05 },
+      family: fam.family, bold: fam.bold, italic: fam.italic,
+      size: Math.round(best.size * 10) / 10, colour: col,
+      baseline: sameLine ? best.y : y + best.size * 0.35,
+      source: "matched to “" + best.str.trim().slice(0, 40) + "”" + (fam.shown ? " (" + fam.shown + ")" : "") +
+        (sameLine ? ", and lined up with it" : "")
+    };
+  }
+  /* a scan: measure the line of ink nearest the click */
+  const est = estimateFromInk(x, y);
+  if (est) return Object.assign({ family: $("fillDefFont").value, bold: false, italic: false,
+    source: "estimated from the ink on the scan — check the size" }, est);
+  return { family: $("fillDefFont").value, bold: false, italic: false, size: +$("fillDefSize").value || 11,
+           colour: [0, 0, 0], baseline: y + 4, source: "no text near here — default font used" };
+}
+
+/* Find the line of writing nearest the click on a scanned page. The height
+   from the top of the tall letters to the baseline is about 0.72 of the font
+   size, whether or not the line happens to have letters that hang below. */
+function estimateFromInk(x, y) {
+  const v = FILL.view; if (!v) return null;
+  const k = v.scale * v.dpr;
+  const x0 = Math.max(0, Math.floor((x - 160) * k)), x1 = Math.min(v.canvas.width, Math.ceil((x + 160) * k));
+  const y0 = Math.max(0, Math.floor((y - 40) * k)), y1 = Math.min(v.canvas.height, Math.ceil((y + 40) * k));
+  const W = x1 - x0, H = y1 - y0;
+  if (W < 10 || H < 10) return null;
+  const d = v.canvas.getContext("2d").getImageData(x0, y0, W, H).data;
+  const rows = new Float32Array(H);
+  for (let r = 0; r < H; r++) {
+    let ink = 0;
+    for (let c = 0; c < W; c++) { const i = (r * W + c) * 4; if (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] < 140) ink++; }
+    rows[r] = ink / W;
+  }
+  const toPt = row => y0 / k + row / k;
+  const bands = [];
+  let start = -1;
+  for (let r = 0; r <= H; r++) {
+    const on = r < H && rows[r] > 0.012;
+    if (on && start < 0) start = r;
+    if (!on && start >= 0) {
+      const hPt = (r - start) / k;
+      let peak = 0;
+      for (let q = start; q < r; q++) if (rows[q] > peak) peak = rows[q];
+      /* a ruled line is a thin, very dense band - not writing */
+      if (hPt > 3 && hPt < 45 && !(hPt < 3.5 && peak > 0.5)) bands.push({ s: start, e: r, peak });
+      start = -1;
+    }
+  }
+  if (!bands.length) return null;
+  bands.sort((a, b) => Math.abs((toPt(a.s) + toPt(a.e)) / 2 - y) - Math.abs((toPt(b.s) + toPt(b.e)) / 2 - y));
+  const b = bands[0];
+  let base = b.e - 1;
+  while (base > b.s && rows[base] < b.peak * 0.35) base--;
+  const top = toPt(b.s), basePt = toPt(base + 1);
+  const size = Math.max(6, Math.min(30, Math.round((basePt - top) / 0.72 * 10) / 10));
+  const col = inkColour(x - 160, top, 320, toPt(b.e) - top) || [0, 0, 0];
+  const sameLine = y >= top - size * 0.4 && y <= toPt(b.e) + size * 0.6;
+  return { size, colour: col, baseline: sameLine ? basePt : y + size * 0.35,
+           inkBox: { x: x - 160, y: top, w: 320, h: toPt(b.e) - top } };
+}
+
+function rematch() {
+  const it = FILL.sel; if (!it || it.type !== "text") return;
+  pushUndo();
+  const m = matchAt(it.x, it.y - it.size * 0.4);
+  Object.assign(it, { family: m.family, bold: m.bold, italic: m.italic, size: m.size, colour: m.colour, matched: m.source });
+  drawItems(); showProps();
+  if (m.inkBox) refineColour(it, m.inkBox);
+}
+
+/* ---------------------------------------------------------------- items */
+function pushUndo() {
+  FILL.undo.push(JSON.stringify(FILL.items));
+  if (FILL.undo.length > 80) FILL.undo.shift();
+}
+function fillUndo() {
+  const s = FILL.undo.pop(); if (!s) return;
+  const selId = FILL.sel && FILL.sel.id;
+  FILL.items = JSON.parse(s);
+  FILL.sel = FILL.items.find(i => i.id === selId) || null;
+  drawItems(); showProps(); listItems();
+}
+$("btnFillUndo").addEventListener("click", fillUndo);
+
+function newItem(type, props) {
+  return Object.assign({ id: ++FILL.seq, page: FILL.page, type, opacity: 1 }, props);
+}
+function fontCss(it, k) {
+  return (it.italic ? "italic " : "") + (it.bold ? "bold " : "") + (it.size * k) + "px " + FONT_CSS[it.family];
+}
+function textLines(it) { return String(it.text || "").split("\n"); }
+
+/* the box an item occupies, in points */
+function bounds(it) {
+  if (it.type === "text") {
+    const ctx = $("fillStage") ? $("fillStage").getContext("2d") : document.createElement("canvas").getContext("2d");
+    ctx.font = fontCss(it, 1);
+    const lines = textLines(it);
+    const w = Math.max(8, ...lines.map(l => ctx.measureText(l || " ").width));
+    const lh = it.size * 1.2;
+    return { x: it.x, y: it.y - it.size * 0.8, w, h: lh * (lines.length - 1) + it.size * 1.05 };
+  }
+  if (it.type === "line") {
+    return { x: Math.min(it.x, it.x2) - 3, y: Math.min(it.y, it.y2) - 3, w: Math.abs(it.x2 - it.x) + 6, h: Math.abs(it.y2 - it.y) + 6 };
+  }
+  return { x: it.x, y: it.y, w: it.w, h: it.h };
+}
+
+const TICK_PATH = "M1.5 5.5 L4 8.2 L8.6 1.6";
+const CROSS_PATH = "M1.8 1.8 L8.2 8.2 M8.2 1.8 L1.8 8.2";
+
+function drawItems() {
+  const ov = $("fillStage"); if (!ov || !FILL.view) return;
+  const v = FILL.view, k = v.scale * v.dpr;
+  const ctx = ov.getContext("2d");
+  ctx.clearRect(0, 0, ov.width, ov.height);
+  for (const it of FILL.items.filter(i => i.page === FILL.page)) {
+    ctx.save();
+    ctx.globalAlpha = it.opacity == null ? 1 : it.opacity;
+    const col = toHex(it.colour || [0, 0, 0]);
+    if (it.type === "text") {
+      ctx.fillStyle = col; ctx.font = fontCss(it, k); ctx.textBaseline = "alphabetic";
+      textLines(it).forEach((l, n) => ctx.fillText(l, it.x * k, (it.y + n * it.size * 1.2) * k));
+    } else if (it.type === "tick" || it.type === "cross") {
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, it.stroke * k); ctx.lineCap = "round"; ctx.lineJoin = "round";
+      const s = it.w / 10;
+      ctx.translate(it.x * k, it.y * k); ctx.scale(s * k, s * k);
+      ctx.lineWidth = it.stroke / s;
+      ctx.stroke(new Path2D(it.type === "tick" ? TICK_PATH : CROSS_PATH));
+    } else if (it.type === "dot" || it.type === "ellipse") {
+      ctx.beginPath();
+      ctx.ellipse((it.x + it.w / 2) * k, (it.y + it.h / 2) * k, it.w / 2 * k, it.h / 2 * k, 0, 0, Math.PI * 2);
+      if (it.type === "dot" || it.fill) { ctx.fillStyle = it.type === "dot" ? col : toHex(it.fillColour); ctx.fill(); }
+      if (it.type === "ellipse") { ctx.strokeStyle = col; ctx.lineWidth = it.stroke * k; ctx.stroke(); }
+    } else if (it.type === "rect" || it.type === "white" || it.type === "mark") {
+      if (it.type === "mark") { ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = toHex(it.fillColour); ctx.fillRect(it.x * k, it.y * k, it.w * k, it.h * k); }
+      else if (it.type === "white") { ctx.fillStyle = toHex(it.fillColour); ctx.fillRect(it.x * k, it.y * k, it.w * k, it.h * k); }
+      else {
+        if (it.fill) { ctx.fillStyle = toHex(it.fillColour); ctx.fillRect(it.x * k, it.y * k, it.w * k, it.h * k); }
+        ctx.strokeStyle = col; ctx.lineWidth = it.stroke * k; ctx.strokeRect(it.x * k, it.y * k, it.w * k, it.h * k);
+      }
+    } else if (it.type === "line") {
+      ctx.strokeStyle = col; ctx.lineWidth = it.stroke * k; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(it.x * k, it.y * k); ctx.lineTo(it.x2 * k, it.y2 * k); ctx.stroke();
+    } else if (it.type === "image") {
+      const im = FILL.imgs[it.img];
+      if (im && im.el && im.el.complete) {
+        if (it.multiply) ctx.globalCompositeOperation = "multiply";
+        ctx.drawImage(im.el, it.x * k, it.y * k, it.w * k, it.h * k);
+      }
+    }
+    ctx.restore();
+  }
+  /* selection */
+  const s = FILL.sel;
+  if (s && s.page === FILL.page) {
+    ctx.save();
+    ctx.strokeStyle = "#14646D"; ctx.setLineDash([5 * v.dpr, 4 * v.dpr]); ctx.lineWidth = 1.2 * v.dpr;
+    if (s.type === "line") {
+      ctx.setLineDash([]); ctx.fillStyle = "#14646D";
+      [[s.x, s.y], [s.x2, s.y2]].forEach(p => ctx.fillRect(p[0] * k - 5 * v.dpr, p[1] * k - 5 * v.dpr, 10 * v.dpr, 10 * v.dpr));
+    } else {
+      const b = bounds(s);
+      ctx.strokeRect(b.x * k - 3, b.y * k - 3, b.w * k + 6, b.h * k + 6);
+      ctx.setLineDash([]); ctx.fillStyle = "#14646D";
+      ctx.fillRect((b.x + b.w) * k - 2, (b.y + b.h) * k - 2, 11 * v.dpr, 11 * v.dpr);
+    }
+    ctx.restore();
+  }
+}
+
+function hit(x, y) {
+  const list = FILL.items.filter(i => i.page === FILL.page);
+  for (let n = list.length - 1; n >= 0; n--) {
+    const it = list[n];
+    if (it.type === "line") {
+      const dx = it.x2 - it.x, dy = it.y2 - it.y, L = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((x - it.x) * dx + (y - it.y) * dy) / L));
+      if (Math.hypot(x - (it.x + t * dx), y - (it.y + t * dy)) < 5) return it;
+      continue;
+    }
+    const b = bounds(it);
+    if (x >= b.x - 3 && x <= b.x + b.w + 3 && y >= b.y - 3 && y <= b.y + b.h + 3) return it;
+  }
+  return null;
+}
+function onHandle(it, x, y) {
+  const k = FILL.view.scale, tol = 9 / k;
+  if (it.type === "line") {
+    if (Math.hypot(x - it.x, y - it.y) < tol) return "p1";
+    if (Math.hypot(x - it.x2, y - it.y2) < tol) return "p2";
+    return null;
+  }
+  const b = bounds(it);
+  return (Math.abs(x - (b.x + b.w)) < tol && Math.abs(y - (b.y + b.h)) < tol) ? "corner" : null;
+}
+
+/* ---------------------------------------------------------------- the stage */
+function bindStage(ov) {
+  const pt = ev => {
+    const r = ov.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) / FILL.view.scale, y: (ev.clientY - r.top) / FILL.view.scale };
+  };
+  ov.addEventListener("pointerdown", ev => {
+    if (!FILL.view) return;
+    ov.focus({ preventScroll: true });
+    const p = pt(ev), t = FILL.tool;
+    if (t === "select") {
+      const handle = FILL.sel && FILL.sel.page === FILL.page ? onHandle(FILL.sel, p.x, p.y) : null;
+      const it = handle ? FILL.sel : hit(p.x, p.y);
+      FILL.sel = it; drawItems(); showProps(); listItems();
+      if (!it) return;
+      pushUndo();
+      FILL.drag = { mode: handle || "move", start: p, orig: JSON.parse(JSON.stringify(it)), it };
+      ov.setPointerCapture(ev.pointerId);
+      ev.preventDefault();
+      return;
+    }
+    if (t === "text" || t === "date") { placeText(p, t === "date"); return; }
+    if (t === "tick" || t === "cross" || t === "dot") {
+      const m = matchAt(p.x, p.y);
+      const sz = Math.max(7, Math.min(24, (m.size || 11) * 1.05));
+      pushUndo();
+      const it = newItem(t, { x: p.x - sz / 2, y: p.y - sz / 2, w: sz, h: sz, colour: m.colour && m.source.indexOf("default") < 0 ? m.colour : [0, 0, 0],
+        stroke: Math.max(0.8, sz * 0.12) });
+      if (t === "dot") { it.w = it.h = sz * 0.55; it.x = p.x - it.w / 2; it.y = p.y - it.h / 2; }
+      FILL.items.push(it); FILL.sel = it; drawItems(); showProps(); listItems();
+      return;
+    }
+    if (t === "image") {
+      if (!FILL.pending) { chooseImage(); return; }
+      const im = FILL.imgs[FILL.pending];
+      const wPt = (+$("fillImgW").value || 35) * MM_PT;
+      const hPt = wPt * im.h / im.w;
+      pushUndo();
+      const it = newItem("image", { img: FILL.pending, x: p.x - wPt / 2, y: p.y - hPt / 2, w: wPt, h: hPt,
+        multiply: im.kind === "sign" });
+      FILL.items.push(it); FILL.sel = it;
+      FILL.pending = null; $("fillImgPick").innerHTML = "";
+      setTool("select"); drawItems(); showProps(); listItems();
+      return;
+    }
+    /* line, rect, ellipse, white-out, highlight: drawn by dragging */
+    pushUndo();
+    const base = { colour: [0, 0, 0], stroke: 1, fill: false, fillColour: [255, 255, 255] };
+    let it;
+    if (t === "line") it = newItem("line", Object.assign(base, { x: p.x, y: p.y, x2: p.x, y2: p.y }));
+    else it = newItem(t, Object.assign(base, { x: p.x, y: p.y, w: 0, h: 0 }));
+    if (t === "white") Object.assign(it, { fill: true, fillColour: [255, 255, 255] });
+    if (t === "mark") Object.assign(it, { fill: true, fillColour: [255, 236, 61], opacity: 0.45 });
+    if (t === "ellipse") it.colour = [200, 20, 20];
+    FILL.items.push(it); FILL.sel = it;
+    FILL.drag = { mode: "draw", start: p, it };
+    ov.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+  ov.addEventListener("pointermove", ev => {
+    const d = FILL.drag; if (!d) return;
+    const p = pt(ev), it = d.it, o = d.orig;
+    const dx = p.x - d.start.x, dy = p.y - d.start.y;
+    if (d.mode === "draw") {
+      if (it.type === "line") { it.x2 = p.x; it.y2 = p.y; if (ev.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) it.y2 = it.y; else it.x2 = it.x; } }
+      else { it.x = Math.min(p.x, d.start.x); it.y = Math.min(p.y, d.start.y); it.w = Math.abs(dx); it.h = Math.abs(dy); }
+    } else if (d.mode === "move") {
+      it.x = o.x + dx; it.y = o.y + dy;
+      if (it.type === "line") { it.x2 = o.x2 + dx; it.y2 = o.y2 + dy; }
+    } else if (d.mode === "p1") { it.x = p.x; it.y = p.y; }
+    else if (d.mode === "p2") { it.x2 = p.x; it.y2 = p.y; }
+    else if (d.mode === "corner") {
+      if (it.type === "text") {
+        const b0 = bounds(o);
+        it.size = Math.max(4, Math.round(o.size * Math.max(0.2, (b0.h + dy) / b0.h) * 10) / 10);
+      } else if (it.type === "image" || it.type === "tick" || it.type === "cross" || it.type === "dot") {
+        const w = Math.max(4, o.w + dx);
+        it.w = w; it.h = w * o.h / o.w;
+        if (it.type !== "image") it.stroke = o.stroke * w / o.w;
+      } else { it.w = Math.max(2, o.w + dx); it.h = Math.max(2, o.h + dy); }
+    }
+    drawItems();
+    ev.preventDefault();
+  });
+  ov.addEventListener("pointerup", () => {
+    const d = FILL.drag; FILL.drag = null;
+    if (!d) return;
+    if (d.mode === "draw") {
+      const it = d.it;
+      const tiny = it.type === "line" ? Math.hypot(it.x2 - it.x, it.y2 - it.y) < 3 : (it.w < 3 || it.h < 3);
+      if (tiny) { FILL.items.pop(); FILL.undo.pop(); FILL.sel = null; }
+    }
+    drawItems(); showProps(); listItems();
+  });
+  ov.addEventListener("dblclick", ev => {
+    const p = pt(ev); const it = hit(p.x, p.y);
+    if (it && it.type === "text") { FILL.sel = it; showProps(); const ta = $("fpText"); if (ta) { ta.focus(); ta.select(); } }
+  });
+  ov.addEventListener("keydown", ev => {
+    const it = FILL.sel;
+    if ((ev.key === "z" || ev.key === "Z") && (ev.ctrlKey || ev.metaKey)) { fillUndo(); ev.preventDefault(); return; }
+    if (!it) return;
+    if (ev.key === "Delete" || ev.key === "Backspace") { removeSel(); ev.preventDefault(); return; }
+    if ((ev.key === "d" || ev.key === "D") && (ev.ctrlKey || ev.metaKey)) { duplicateSel(); ev.preventDefault(); return; }
+    const step = ev.shiftKey ? 10 : 1;
+    const mv = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[ev.key];
+    if (mv) {
+      pushUndo();
+      it.x += mv[0]; it.y += mv[1];
+      if (it.type === "line") { it.x2 += mv[0]; it.y2 += mv[1]; }
+      drawItems(); ev.preventDefault();
+    }
+  });
+}
+
+function placeText(p, isDate) {
+  const m = matchAt(p.x, p.y);
+  const d = new Date(), z = n => String(n).padStart(2, "0");
+  const text = isDate ? ($("fillDateFmt").value === "slash" ? z(d.getDate()) + "/" + z(d.getMonth() + 1) + "/" + d.getFullYear()
+    : $("fillDateFmt").value === "dot" ? z(d.getDate()) + "." + z(d.getMonth() + 1) + "." + d.getFullYear()
+    : z(d.getDate()) + "-" + z(d.getMonth() + 1) + "-" + d.getFullYear()) : "";
+  pushUndo();
+  const it = newItem("text", { x: p.x, y: m.baseline, text, family: m.family, bold: m.bold, italic: m.italic,
+    size: m.size, colour: m.colour, matched: m.source });
+  FILL.items.push(it); FILL.sel = it;
+  if (m.inkBox) refineColour(it, m.inkBox);
+  drawItems(); showProps(); listItems();
+  if (!isDate) setTimeout(() => { const ta = $("fpText"); if (ta) ta.focus(); }, 30);
+}
+
+function removeSel() {
+  if (!FILL.sel) return;
+  pushUndo();
+  FILL.items = FILL.items.filter(i => i !== FILL.sel);
+  FILL.sel = null; drawItems(); showProps(); listItems();
+}
+function duplicateSel() {
+  const s = FILL.sel; if (!s) return;
+  pushUndo();
+  const c = JSON.parse(JSON.stringify(s)); c.id = ++FILL.seq; c.x += 8; c.y += 8;
+  if (c.type === "line") { c.x2 += 8; c.y2 += 8; }
+  FILL.items.push(c); FILL.sel = c; drawItems(); showProps(); listItems();
+}
+
+/* ---------------------------------------------------------------- properties */
+function showProps() {
+  const box = $("fillProps"), it = FILL.sel;
+  box.classList.toggle("has-sel", !!it);
+  if (!it) {
+    box.innerHTML = "<div class='hint' style='margin:0'>Pick a tool above and click the page. Click an item with <b>Select</b> to change it.</div>";
+    return;
+  }
+  const col = toHex(it.colour || [0, 0, 0]);
+  let h = "";
+  if (it.type === "text") {
+    h += "<label class='fp-l'>Text</label><textarea id='fpText' rows='3' spellcheck='false'>" + esc(it.text) + "</textarea>" +
+      "<div class='fp-row'><select id='fpFam'>" + ["Helvetica", "Times", "Courier"].map(f => "<option" + (f === it.family ? " selected" : "") + ">" + f + "</option>").join("") + "</select>" +
+      "<label><input type='checkbox' id='fpBold'" + (it.bold ? " checked" : "") + "> bold</label>" +
+      "<label><input type='checkbox' id='fpItal'" + (it.italic ? " checked" : "") + "> italic</label></div>" +
+      "<div class='fp-row'><label>Size <input type='number' id='fpSize' value='" + it.size + "' min='3' max='96' step='0.5' style='width:72px'></label>" +
+      "<label>Colour <input type='color' id='fpCol' value='" + col + "'></label></div>" +
+      "<div class='fp-note'>" + esc(it.matched || "") + "</div>" +
+      "<button class='ghost small' id='btnFillMatch2'>Match the text beside it again</button>";
+  } else if (it.type === "image") {
+    const mm = (it.w / MM_PT).toFixed(1), hm = (it.h / MM_PT).toFixed(1);
+    h += "<div class='fp-row'><label>Width <input type='number' id='fpWmm' value='" + mm + "' min='3' step='0.5' style='width:76px'> mm</label>" +
+      "<span class='hint' style='margin:0'>height " + hm + " mm</span></div>" +
+      "<div class='fp-row'><label>Opacity <input type='range' id='fpOp' min='10' max='100' value='" + Math.round(it.opacity * 100) + "'></label></div>" +
+      "<label class='fp-row'><input type='checkbox' id='fpMul'" + (it.multiply ? " checked" : "") + "> blend into the paper (for a signature or stamp)</label>" +
+      "<label class='fp-row'><input type='checkbox' id='fpKey'" + (FILL.imgs[it.img] && FILL.imgs[it.img].from ? " checked" : "") +
+      "> remove the paper behind it (signature or seal photo)</label>";
+  } else {
+    const hasStroke = it.type !== "white" && it.type !== "mark" && it.type !== "dot";
+    if (hasStroke || it.type === "dot") h += "<div class='fp-row'><label>Colour <input type='color' id='fpCol' value='" + col + "'></label>" +
+      (hasStroke ? "<label>Line <input type='number' id='fpStroke' value='" + (Math.round(it.stroke * 10) / 10) + "' min='0.2' max='12' step='0.1' style='width:66px'> pt</label>" : "") + "</div>";
+    if (it.type === "rect" || it.type === "ellipse" || it.type === "white" || it.type === "mark") {
+      h += "<div class='fp-row'>" + (it.type === "rect" || it.type === "ellipse" ? "<label><input type='checkbox' id='fpFill'" + (it.fill ? " checked" : "") + "> filled</label>" : "") +
+        "<label>Fill <input type='color' id='fpFillCol' value='" + toHex(it.fillColour || [255, 255, 255]) + "'></label></div>";
+    }
+    h += "<div class='fp-row'><label>Opacity <input type='range' id='fpOp' min='10' max='100' value='" + Math.round((it.opacity == null ? 1 : it.opacity) * 100) + "'></label></div>";
+    if (it.type === "white") h += "<div class='fp-note'>White-out only hides what is under it on the printed page. The words underneath are still in the file and can be copied out of a typed PDF — for anything confidential, flatten the page (Compress tab) after this.</div>";
+  }
+  h += "<div class='fp-row' style='margin-top:6px'><button class='ghost small' id='fpDup'>Duplicate</button>" +
+    "<button class='ghost small' id='fpAll'>Put on every page</button>" +
+    "<button class='ghost small danger' id='fpDel'>✕ Delete</button></div>";
+  box.innerHTML = "<div class='fp-title'><span>" + typeName(it) + " · page " + (it.page + 1) + "</span>" +
+    "<button class='ghost tiny' id='fpDone'>Done</button></div>" + h;
+
+  const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+  let snapped = false;
+  const snap = () => { if (!snapped) { pushUndo(); snapped = true; } };
+  on("fpText", "input", e => { snap(); it.text = e.target.value; drawItems(); listItems(); });
+  on("fpFam", "change", e => { pushUndo(); it.family = e.target.value; drawItems(); });
+  on("fpBold", "change", e => { pushUndo(); it.bold = e.target.checked; drawItems(); });
+  on("fpItal", "change", e => { pushUndo(); it.italic = e.target.checked; drawItems(); });
+  on("fpSize", "input", e => { snap(); it.size = Math.max(3, +e.target.value || it.size); drawItems(); });
+  on("fpCol", "input", e => { snap(); it.colour = hexToRgb(e.target.value); drawItems(); });
+  on("fpStroke", "input", e => { snap(); it.stroke = Math.max(0.2, +e.target.value || it.stroke); drawItems(); });
+  on("fpFill", "change", e => { pushUndo(); it.fill = e.target.checked; drawItems(); });
+  on("fpFillCol", "input", e => { snap(); it.fillColour = hexToRgb(e.target.value); drawItems(); });
+  on("fpOp", "input", e => { snap(); it.opacity = (+e.target.value) / 100; drawItems(); });
+  on("fpMul", "change", e => { pushUndo(); it.multiply = e.target.checked; drawItems(); });
+  on("fpWmm", "input", e => { snap(); const w = Math.max(3, +e.target.value || 3) * MM_PT; it.h = w * it.h / it.w; it.w = w; drawItems(); });
+  on("fpKey", "change", async e => {
+    const im = FILL.imgs[it.img]; if (!im) return;
+    pushUndo();
+    if (e.target.checked && !im.from) {
+      const nid = await keyImage(it.img); if (!nid) return;
+      const n2 = FILL.imgs[nid];
+      const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
+      it.img = nid; it.h = it.w * n2.h / n2.w; it.x = cx - it.w / 2; it.y = cy - it.h / 2; it.multiply = true;
+    } else if (!e.target.checked && im.from) {
+      const o = FILL.imgs[im.from];
+      const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
+      it.img = im.from; it.h = it.w * o.h / o.w; it.x = cx - it.w / 2; it.y = cy - it.h / 2; it.multiply = false;
+    }
+    drawItems(); showProps();
+  });
+  on("fpDone", "click", () => { FILL.sel = null; drawItems(); showProps(); listItems(); });
+  on("fpDup", "click", duplicateSel);
+  on("fpDel", "click", removeSel);
+  on("btnFillMatch2", "click", rematch);
+  on("fpAll", "click", () => {
+    pushUndo();
+    let added = 0;
+    for (let pg = 0; pg < S.eng.n; pg++) {
+      if (pg === it.page) continue;
+      const c = JSON.parse(JSON.stringify(it)); c.id = ++FILL.seq; c.page = pg; FILL.items.push(c); added++;
+    }
+    listItems();
+    $("fillOut").innerHTML = "<div class='note good'>Copied to " + added + " other pages, at the same place.</div>";
+  });
+}
+const hexToRgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function typeName(it) {
+  return { text: "Text", tick: "Tick", cross: "Cross", dot: "Dot", line: "Line", rect: "Box", ellipse: "Circle",
+           white: "White-out", mark: "Highlight", image: "Picture" }[it.type] || it.type;
+}
+
+function listItems() {
+  const box = $("fillList"); if (!box) return;
+  if (!FILL.items.length) { box.innerHTML = ""; return; }
+  const pages = [...new Set(FILL.items.map(i => i.page))].sort((a, b) => a - b);
+  box.innerHTML = "<div class='fp-l' style='margin-top:4px'>Added so far</div>" + pages.map(pg => {
+    const its = FILL.items.filter(i => i.page === pg);
+    return "<div class='fl-page'><button class='tiny ghost' data-goto='" + pg + "'>page " + (pg + 1) + "</button> " +
+      its.map(i => "<span class='fl-chip" + (FILL.sel === i ? " on" : "") + "' data-id='" + i.id + "'>" +
+        esc(i.type === "text" ? "“" + (i.text || "…").slice(0, 18) + "”" : typeName(i)) + "</span>").join(" ") + "</div>";
+  }).join("");
+  box.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => fillShow(+b.dataset.goto)));
+  box.querySelectorAll(".fl-chip").forEach(c => c.addEventListener("click", async () => {
+    const it = FILL.items.find(i => i.id === +c.dataset.id); if (!it) return;
+    FILL.sel = it; setTool("select");
+    if (it.page !== FILL.page) await fillShow(it.page); else { drawItems(); showProps(); listItems(); }
+  }));
+}
+
+/* ---------------------------------------------------------------- pictures */
+function chooseImage() {
+  $("fillImgPick").innerHTML =
+    "<button class='ghost small' id='fiFile'>From a file…</button>" +
+    (S.photo && S.photo.out ? "<button class='ghost small' id='fiPhoto'>The finished photo (Photo &amp; sign tab)</button>" : "") +
+    (S.sig && S.sig.url ? "<button class='ghost small' id='fiSig'>The signature (Number &amp; stamp tab)</button>" : "") +
+    "<span class='hint' style='margin:0'>then click the page where it goes</span>";
+  $("fiFile").addEventListener("click", () => $("fillImgInput").click());
+  if ($("fiPhoto")) $("fiPhoto").addEventListener("click", () => {
+    const fmt = $("phFormat") ? $("phFormat").value : "jpeg";
+    addImage(new Blob([S.photo.out.bytes], { type: fmt === "png" ? "image/png" : "image/jpeg" }), "photo", "finished photo");
+  });
+  if ($("fiSig")) $("fiSig").addEventListener("click", async () => {
+    const b = await (await fetch(S.sig.url)).blob();
+    addImage(b, "sign", "signature");
+  });
+}
+$("fillImgInput").addEventListener("change", e => {
+  const f = e.target.files[0]; if (f) addImage(f, "photo", f.name);
+  e.target.value = "";
+});
+
+async function addImage(blob, kind, label) {
+  const url = URL.createObjectURL(blob);
+  const el = new Image();
+  el.onload = async () => {
+    /* keep it as a JPEG or PNG the PDF can carry; large photos are brought down to a sensible size */
+    let bytes, type;
+    const big = Math.max(el.naturalWidth, el.naturalHeight) > 2400;
+    if ((blob.type === "image/jpeg" || blob.type === "image/png") && !big) {
+      bytes = new Uint8Array(await blob.arrayBuffer()); type = blob.type;
+    } else {
+      const k = Math.min(1, 2400 / Math.max(el.naturalWidth, el.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(el.naturalWidth * k); c.height = Math.round(el.naturalHeight * k);
+      c.getContext("2d").drawImage(el, 0, 0, c.width, c.height);
+      type = blob.type === "image/jpeg" ? "image/jpeg" : "image/png";
+      const b2 = await new Promise(r => c.toBlob(r, type, 0.9));
+      bytes = new Uint8Array(await b2.arrayBuffer());
+    }
+    const id = "img" + (++FILL.seq);
+    FILL.imgs[id] = { url, el, w: el.naturalWidth, h: el.naturalHeight, kind, bytes, type, label };
+    FILL.pending = id;
+    if (kind === "sign") $("fillImgW").value = 40;
+    else if (kind === "photo" && label === "finished photo" && S.photo.target) $("fillImgW").value = (S.photo.target.w / S.photo.target.dpi * 25.4).toFixed(1);
+    $("fillImgPick").innerHTML = "<span class='note good' style='display:inline-block;margin:0'>" + esc(label) +
+      " ready — click the page where its centre should go.</span>" +
+      (kind === "sign" ? "" : "<label style='display:flex;align-items:center;gap:6px;font-size:13px'><input type='checkbox' id='fiKey'>" +
+       "it is a signature or seal — remove the paper</label>");
+    if ($("fiKey")) $("fiKey").addEventListener("change", async e => {
+      if (e.target.checked) {
+        const nid = await keyImage(id);
+        if (nid) { FILL.pending = nid; $("fillImgW").value = 40; }
+      } else FILL.pending = id;
+    });
+    FILL.tool = "image";
+    document.querySelectorAll("#fillTools button").forEach(b => b.classList.toggle("on", b.dataset.tool === "image"));
+    $("fillHint").textContent = "click the page where the picture’s centre should go";
+  };
+  el.onerror = () => { $("fillImgPick").innerHTML = "<span class='note bad' style='margin:0'>That picture could not be read.</span>"; };
+  el.src = url;
+}
+
+/* Signature or seal: trim the photo's frame, take the paper away, keep the ink. */
+async function keyImage(id) {
+  const src = FILL.imgs[id]; if (!src) return null;
+  const el = src.el;
+  const k = Math.min(1, 1400 / Math.max(el.naturalWidth, el.naturalHeight));
+  const W = Math.max(8, Math.round(el.naturalWidth * k)), H = Math.max(8, Math.round(el.naturalHeight * k));
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H); ctx.drawImage(el, 0, 0, W, H);
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  const lum = new Float32Array(W * H);
+  for (let i = 0, p = 0; i < W * H; i++, p += 4) lum[i] = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+  const box = NUM.frameBox(lum, W, H);
+  const hist = new Uint32Array(256); let n = 0;
+  for (let y = box.t; y <= box.b; y++) for (let x = box.l; x <= box.r; x++) { hist[Math.min(255, lum[y * W + x] | 0)]++; n++; }
+  const thr = NUM.otsu(hist, n);
+  const cut = thr + 0.35 * (255 - thr), ink = thr * 0.55, span = Math.max(1, cut - ink);
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, p = i * 4;
+    const inside = x >= box.l && x <= box.r && y >= box.t && y <= box.b;
+    let a = inside ? (cut - lum[i]) / span : 0;
+    a = a <= 0 ? 0 : a >= 1 ? 1 : Math.pow(a, 0.85);
+    d[p + 3] = Math.round(a * 255);
+    if (a > 0.3) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  ctx.putImageData(img, 0, 0);
+  if (x1 < 0) return null;
+  const pad = 6;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
+  const out = document.createElement("canvas"); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+  out.getContext("2d").drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  const blob = await new Promise(res => out.toBlob(res, "image/png"));
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const url = URL.createObjectURL(blob);
+  const el2 = new Image();
+  await new Promise(res => { el2.onload = res; el2.src = url; });
+  const nid = "img" + (++FILL.seq);
+  FILL.imgs[nid] = { url, el: el2, w: out.width, h: out.height, kind: "sign", bytes, type: "image/png",
+                     label: src.label + " (paper removed)", from: id };
+  return nid;
+}
+
+/* ---------------------------------------------------------------- writing the PDF */
+function stdFontName(it) {
+  const f = it.family, b = it.bold, i = it.italic;
+  if (f === "Times") return b && i ? "TimesRomanBoldItalic" : b ? "TimesRomanBold" : i ? "TimesRomanItalic" : "TimesRoman";
+  if (f === "Courier") return b && i ? "CourierBoldOblique" : b ? "CourierBold" : i ? "CourierOblique" : "Courier";
+  return b && i ? "HelveticaBoldOblique" : b ? "HelveticaBold" : i ? "HelveticaOblique" : "Helvetica";
+}
+
+/* a point on the page as the reader sees it -> the page's own coordinates */
+function toPage(page, vx, vy) {
+  const rot = ((page.getRotation().angle % 360) + 360) % 360;
+  const cb = page.getCropBox();
+  const W = cb.width, H = cb.height;
+  let r;
+  switch (rot) {
+    case 90: r = { x: vy, y: vx, rotate: 90 }; break;
+    case 180: r = { x: W - vx, y: vy, rotate: 180 }; break;
+    case 270: r = { x: W - vy, y: H - vx, rotate: -90 }; break;
+    default: r = { x: vx, y: H - vy, rotate: 0 };
+  }
+  r.x += cb.x; r.y += cb.y;
+  return r;
+}
+
+$("btnFillApply").addEventListener("click", async () => {
+  const out = $("fillOut"), btn = $("btnFillApply");
+  if (!S.eng) return;
+  const items = FILL.items.filter(i => !(i.type === "text" && !String(i.text || "").trim()));
+  if (!items.length) { out.innerHTML = "<div class='note bad'>Nothing has been added yet.</div>"; return; }
+  btn.disabled = true; btn.textContent = "Writing…";
+  let bytes;
+  try {
+    const doc = await PDFLib.PDFDocument.load(S.bytes.slice(), { ignoreEncryption: true });
+    const pages = doc.getPages();
+    const fonts = {}, embedded = {};
+    const font = async it => fonts[stdFontName(it)] || (fonts[stdFontName(it)] = await doc.embedFont(PDFLib.StandardFonts[stdFontName(it)]));
+    const bad = [];
+    for (const it of items) {
+      if (it.type !== "text") continue;
+      const f = await font(it);
+      for (const ch of new Set(it.text.replace(/\n/g, ""))) { try { f.encodeText(ch); } catch (e) { bad.push(ch); } }
+    }
+    if (bad.length) {
+      btn.disabled = false; btn.textContent = "Apply to the PDF";
+      out.innerHTML = "<div class='note bad'>These characters cannot be written with the built-in PDF fonts: <b>" + esc([...new Set(bad)].join(" ")) +
+        "</b><br>Typed text works in English, digits and ordinary punctuation. Write “Rs.” for ₹. Hindi or Tamil text would need a font file embedded, which this offline tool does not carry — a photo of handwritten text can be placed instead.</div>";
+      return;
+    }
+    const rgb = c => PDFLib.rgb((c || [0, 0, 0])[0] / 255, (c || [0, 0, 0])[1] / 255, (c || [0, 0, 0])[2] / 255);
+    for (const it of items) {
+      const page = pages[it.page]; if (!page) continue;
+      const op = it.opacity == null ? 1 : it.opacity;
+      if (it.type === "text") {
+        const a = toPage(page, it.x, it.y);
+        page.drawText(it.text, { x: a.x, y: a.y, size: it.size, font: await font(it), color: rgb(it.colour),
+          lineHeight: it.size * 1.2, opacity: op, rotate: PDFLib.degrees(a.rotate) });
+      } else if (it.type === "tick" || it.type === "cross") {
+        const a = toPage(page, it.x, it.y), s = it.w / 10;
+        page.drawSvgPath(it.type === "tick" ? TICK_PATH : CROSS_PATH, { x: a.x, y: a.y, scale: s,
+          borderColor: rgb(it.colour), borderWidth: it.stroke, borderLineCap: PDFLib.LineCapStyle.Round,
+          rotate: PDFLib.degrees(a.rotate), borderOpacity: op });
+      } else if (it.type === "dot" || it.type === "ellipse") {
+        const c = toPage(page, it.x + it.w / 2, it.y + it.h / 2);
+        const filled = it.type === "dot" || it.fill;
+        page.drawEllipse({ x: c.x, y: c.y, xScale: it.w / 2, yScale: it.h / 2, rotate: PDFLib.degrees(c.rotate),
+          color: filled ? rgb(it.type === "dot" ? it.colour : it.fillColour) : undefined,
+          borderColor: it.type === "ellipse" ? rgb(it.colour) : undefined, borderWidth: it.type === "ellipse" ? it.stroke : 0,
+          opacity: op, borderOpacity: op });
+      } else if (it.type === "rect" || it.type === "white" || it.type === "mark") {
+        const a = toPage(page, it.x, it.y + it.h);
+        const o = { x: a.x, y: a.y, width: it.w, height: it.h, rotate: PDFLib.degrees(a.rotate), opacity: op, borderOpacity: op };
+        if (it.type === "white") Object.assign(o, { color: rgb(it.fillColour), borderWidth: 0 });
+        else if (it.type === "mark") Object.assign(o, { color: rgb(it.fillColour), borderWidth: 0, blendMode: PDFLib.BlendMode.Multiply });
+        else Object.assign(o, { color: it.fill ? rgb(it.fillColour) : undefined, borderColor: rgb(it.colour), borderWidth: it.stroke });
+        page.drawRectangle(o);
+      } else if (it.type === "line") {
+        const a = toPage(page, it.x, it.y), b = toPage(page, it.x2, it.y2);
+        page.drawLine({ start: { x: a.x, y: a.y }, end: { x: b.x, y: b.y }, thickness: it.stroke, color: rgb(it.colour),
+          opacity: op, lineCap: PDFLib.LineCapStyle.Round });
+      } else if (it.type === "image") {
+        const im = FILL.imgs[it.img]; if (!im) continue;
+        if (!embedded[it.img]) embedded[it.img] = im.type === "image/png" ? await doc.embedPng(im.bytes) : await doc.embedJpg(im.bytes);
+        const a = toPage(page, it.x, it.y + it.h);
+        page.drawImage(embedded[it.img], { x: a.x, y: a.y, width: it.w, height: it.h, rotate: PDFLib.degrees(a.rotate),
+          opacity: op, blendMode: it.multiply ? PDFLib.BlendMode.Multiply : undefined });
+      }
+    }
+    bytes = await doc.save({ useObjectStreams: true });
+  } catch (err) {
+    btn.disabled = false; btn.textContent = "Apply to the PDF";
+    out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>"; return;
+  }
+  btn.disabled = false; btn.textContent = "Apply to the PDF";
+
+  const first = Math.min(...items.map(i => i.page));
+  let shot = "";
+  try {
+    const pj = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+    const { canvas } = await renderCanvas(pj, first + 1, 110 / 72, false);
+    shot = canvas.toDataURL("image/jpeg", 0.85); canvas.width = canvas.height = 1; pj.destroy();
+  } catch (e) {}
+  const pagesTouched = new Set(items.map(i => i.page)).size;
+  const fname = S.eng.stem + "_filled.pdf";
+  out.innerHTML = "<div class='note good'><b>" + items.length + " item" + (items.length === 1 ? "" : "s") + " written on " + pagesTouched +
+    " page" + (pagesTouched === 1 ? "" : "s") + "</b> — file is now " + human(bytes.length) + ". Text is real text, not a picture: it prints sharp and can be searched.</div>" +
+    (shot ? "<figure style='margin:10px 0 0'><img src='" + shot + "' style='max-width:100%;max-height:520px;border:1px solid var(--line)'><figcaption class='hint'>Page " + (first + 1) + " as written</figcaption></figure>" : "") +
+    "<div class='btn-row' style='margin-top:10px'><button id='btnDlFill'>Download " + esc(fname) + "</button>" +
+    "<button id='btnUseFill' class='ghost'>Use as working file</button></div>";
+  $("btnDlFill").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  $("btnUseFill").addEventListener("click", async () => {
+    await setWorking(bytes, fname, "filled " + items.length + " items");
+    showTab("fill");
+  });
+});
+
+$("btnFillClear").addEventListener("click", () => {
+  if (!FILL.items.length) return;
+  pushUndo(); FILL.items = []; FILL.sel = null; drawItems(); showProps(); listItems();
+});
 
 </script>
 </body>
