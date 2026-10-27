@@ -19,4 +19,5 @@ module.exports = {
   imposer: () => factory('createImposer', [PDFLib]),
   photo: () => factory('createPhoto'),
   seg: () => factory('createSegRefine'),
+  scanner: () => factory('createScanner'),
 };

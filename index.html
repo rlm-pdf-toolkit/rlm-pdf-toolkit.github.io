@@ -19,6 +19,40 @@
 
   VERSION LOG (newest first)
 
+  v4.2  2026-10-27  SCAN WITH THE CAMERA, DOCUMENTS IN PHOTO & SIGN, SHARE.
+        SCANNER, like a phone scanning app. The camera outlines the page
+        while you aim; the page taken is trimmed to its edges, straightened
+        out of its slant to its true shape (an A4 stays A4, a card stays a
+        card) and cleaned: shadows lifted, paper made white, ink darker.
+        Looks: Scanned colour, Grey, Black & white, Original. Two camera
+        modes: Scan, and Original photo (exactly as taken). Take many pages
+        one after another; then crop the corners by hand with a magnifier,
+        turn, reorder, retake or delete any page; choose A4 or the scan's
+        own shape, and sharpest / standard / smallest file. Photos already
+        on the phone are scanned the same way.
+        Where: (1) Working file - "Scan pages into a new PDF" and "Make a
+        PDF from photos" make a new PDF that becomes the working file.
+        (2) Organise pages - "Scan pages" / "From photos" put scanned pages
+        before, after or in the middle of the document.
+        (3) Fill & edit - "Scan a document / card" puts a scanned card or
+        paper onto a page as a picture.
+        DOCUMENTS IN PHOTO & SIGN: a third kind, "document / ID card / any
+        picture" - Aadhaar, PAN, certificates, any paper or image. Presets:
+        ID card 85.6 x 54 mm, A4 page at 150 DPI, any shape. Its camera
+        button opens the scanner; "Find the edges and straighten" does the
+        same for a picture already chosen. Looks as photographed or scanned
+        (colour, grey, black & white), with the brightness, contrast, colour
+        and sharpen sliders as for a photo. "Free crop" lets the crop take
+        any shape, the height following it. The finished picture goes
+        into Fill & edit from its picture button.
+        SHARE: the last file made - a scan, a split part, a compressed,
+        organised, numbered or filled PDF, a photo - is kept at hand; the
+        Share button (bottom right, and beside every Download) opens the
+        phone's share sheet for Gmail, Drive, WhatsApp. Where the browser
+        cannot pass files to other apps (most computers), it downloads the
+        file and opens Gmail or Drive to attach or upload it.
+        Scan files are named to the second, so two never share a name.
+
   v4.1  2026-10-27  ITS OWN ADDRESS: https://rlm-pdf-toolkit.github.io/
         The toolkit used to live in a folder of Kaasu's website
         (rlm1711204.github.io/pdf-photo-toolkit/). On a phone where Kaasu
@@ -621,6 +655,57 @@
   .cam-err p{margin:0 0 10px}
   @media (min-width:861px){ .cam-open-btn{font-size:14px; padding:8px 12px} }
 
+  /* scanner */
+  .scn .cam-view{background:#111}
+  .scn-stage{position:absolute; left:0; top:0; z-index:4; touch-action:none; pointer-events:auto!important}
+  .scn-stage[hidden], .scn-loupe[hidden], .scn-busy[hidden], .scn-review[hidden]{display:none}
+  .scn-loupe{position:absolute; z-index:6; border-radius:50%; border:3px solid #fff; box-shadow:0 4px 18px rgba(0,0,0,.6); pointer-events:none}
+  .scn-flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:5}
+  .scn-flash.go{animation:scnflash .35s ease-out}
+  @keyframes scnflash{0%{opacity:.85} 100%{opacity:0}}
+  .scn-busy{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:7; background:rgba(0,0,0,.78); color:#fff;
+    padding:14px 20px; border-radius:10px; font-size:15px}
+  .scn-count{width:56px; height:56px; padding:0; border-radius:8px; border:2px solid #fff; background:#222; position:relative; overflow:hidden}
+  .scn-count[hidden]{display:none}
+  .scn-count img{width:100%; height:100%; object-fit:cover; display:block}
+  .scn-count span{position:absolute; right:-2px; top:-2px; background:#ffd54a; color:#111; font-weight:700; font-size:12px;
+    min-width:22px; height:22px; border-radius:11px; display:flex; align-items:center; justify-content:center}
+  .scn-review{background:#000}
+  .scn-row{display:flex; flex-wrap:wrap; justify-content:center; gap:6px; padding:8px 10px 0}
+  .scn-row::-webkit-scrollbar{display:none}
+  .scn-chip, .scn-tool{flex:0 0 auto; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.22);
+    border-radius:18px; padding:6px 12px; font-size:13.5px; white-space:nowrap; min-height:34px}
+  .scn-chip.on, .scn-tool.on{background:#fff; color:#111; border-color:#fff}
+  .scn-chip.ghost{background:transparent; border-style:dashed}
+  .scn-out{color:#dfe7ea; font-size:13px; gap:14px; align-items:center}
+  .scn-out label{display:flex; align-items:center; gap:6px; white-space:nowrap}
+  .scn-out select{background:#222; color:#fff; border:1px solid rgba(255,255,255,.3); padding:5px 6px; font-size:13px}
+  .scn-strip{display:flex; gap:6px; padding:8px 10px 0; overflow-x:auto; scrollbar-width:none}
+  .scn-strip::-webkit-scrollbar{display:none}
+  .scn-th{flex:0 0 auto; width:48px; height:62px; padding:0; border:2px solid transparent; border-radius:4px; background:#222; position:relative; overflow:hidden}
+  .scn-th.on{border-color:#ffd54a}
+  .scn-th img{width:100%; height:100%; object-fit:cover; display:block}
+  .scn-th span{position:absolute; left:2px; bottom:1px; font-size:11px; color:#fff; text-shadow:0 0 3px #000}
+
+  /* the last file made, ready to share */
+  .share-pill{position:fixed; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:60; display:flex; align-items:center; gap:8px;
+    background:var(--accent); color:#fff; border:none; border-radius:24px; padding:10px 16px 10px 13px; font-size:14.5px;
+    box-shadow:0 6px 20px rgba(10,40,45,.35); max-width:calc(100vw - 28px)}
+  .share-pill[hidden]{display:none}
+  .share-pill b{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:38vw}
+  body.has-share{padding-bottom:72px}
+  body.cam-open .share-pill{display:none}
+  .share-sheet{position:fixed; inset:0; z-index:90; background:rgba(10,20,26,.5); display:flex; align-items:flex-end; justify-content:center}
+  .share-card{background:var(--panel); color:var(--ink); width:min(520px,100vw); border-radius:14px 14px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 24px rgba(0,0,0,.25)}
+  .share-card h3{margin:0 0 4px}
+  .share-card .btn-row{margin-top:12px}
+  .share-card .share-big{flex:1 1 100%; padding:13px; font-size:16px}
+  .file-acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+  #photosNewInput, #orgPhotosInput{display:none}
+  .scan-start{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  .scan-start button{flex:1 1 220px}
+
   /* fill & edit */
   body.wide-tab .wrap{max-width:min(1560px,98vw)}
   .fill-top{position:sticky; top:0; z-index:5; background:var(--panel); padding:6px 0 8px; border-bottom:1px solid var(--line); margin-bottom:10px}
@@ -817,13 +902,13 @@
   <header class="masthead">
     <div>
       <h1>PDF &amp; photo toolkit</h1>
-      <p>Split by size, compress, reorganise pages, fill and sign, number them by hand, or split automatically where a new document begins; passport photo and signature for any form. The file never leaves this device — everything runs on it.</p>
+      <p>Split by size, compress, reorganise pages, fill and sign, number them by hand, or split automatically where a new document begins; scan pages with the camera; passport photo, signature and documents for any form. The file never leaves this device — everything runs on it.</p>
       <div class="app-bar">
         <button id="btnInstall" class="small" hidden>Install as an app</button>
         <span class="app-note" id="appNote"></span>
       </div>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-27 · v4.1</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-27 · v4.2</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -836,6 +921,12 @@
       <span id="dropSub">One file at a time</span>
     </div>
     <input type="file" id="fileInput" accept="application/pdf,.pdf">
+    <div class="scan-start">
+      <button id="btnScanNew" class="ghost">&#128247; Scan pages into a new PDF</button>
+      <button id="btnPhotosNew" class="ghost">&#128444; Make a PDF from photos</button>
+    </div>
+    <input type="file" id="photosNewInput" accept="image/*" multiple>
+    <div id="scanNewOut"></div>
 
     <div class="progress" id="progWrap" hidden><i id="progBar"></i></div>
     <div class="progress-label" id="progLabel" hidden></div>
@@ -1019,7 +1110,7 @@
   <!-- ---------- ORGANISE ---------- -->
   <div class="panel" id="tab-organise" hidden data-locked="true">
     <h2>Organise pages</h2>
-    <p class="hint">Click a page to see it enlarged — the enlarged view has its own buttons to remove, turn, move it before or after any position, duplicate it, or add a blank page or another PDF beside it. Drag the ⠿ handle to move it (on a desktop you can drag the thumbnail itself), or use the arrows. Insert another PDF before, after or in the middle. Nothing changes the working file until you press Build.</p>
+    <p class="hint">Click a page to see it enlarged — the enlarged view has its own buttons to remove, turn, move it before or after any position, duplicate it, or add a blank page or another PDF beside it. Drag the ⠿ handle to move it (on a desktop you can drag the thumbnail itself), or use the arrows. Insert another PDF, or scan pages with the camera, before, after or in the middle. Nothing changes the working file until you press Build.</p>
 
     <div class="btn-row">
       <button id="btnThumbs" class="ghost">Load page thumbnails</button>
@@ -1045,6 +1136,22 @@
       <input type="number" id="insAfter" value="1" min="1" step="1" style="width:90px">
       <button id="btnInsert" class="small">Insert</button>
     </div>
+
+    <h3>Add pages from the camera or photos</h3>
+    <p class="hint">Works like a scanning app: the edges of the page are found, it is straightened and cleaned, and it comes in here as PDF pages. Take several pages one after another. In the camera, <b>Original photo</b> keeps a picture exactly as taken.</p>
+    <div class="field">
+      <button id="btnOrgScan" class="small">&#128247; Scan pages</button>
+      <button id="btnOrgPhotos" class="small ghost">&#128444; From photos</button>
+      <input type="file" id="orgPhotosInput" accept="image/*" multiple>
+      <label for="scWhere">Put them</label>
+      <select id="scWhere">
+        <option value="start">before everything</option>
+        <option value="end" selected>after everything</option>
+        <option value="after">after position…</option>
+      </select>
+      <input type="number" id="scAfter" value="1" min="1" step="1" style="width:90px">
+    </div>
+    <div id="orgScanOut"></div>
 
     <h3>Page order</h3>
     <p class="hint">Type the order using <b>current positions</b> (not original page numbers). A reversed range such as <code>9-5</code> reverses those pages.</p>
@@ -1378,8 +1485,8 @@
 
   <!-- ---------- PHOTO & SIGNATURE ---------- -->
   <div class="panel" id="tab-photo" hidden>
-    <h2>Photo &amp; signature for forms</h2>
-    <p class="hint">Every application asks for a different size. Set what the form wants once — in mm, cm, inches or pixels — and the picture is cropped, cleaned and saved to exactly that size, resolution and file size. The picture never leaves this device.</p>
+    <h2>Photo, signature &amp; documents for forms</h2>
+    <p class="hint">Every application asks for a different size. A photograph, a signature, or a document — an Aadhaar or PAN card, a certificate, any paper or picture. Set what the form wants once — in mm, cm, inches or pixels — and the picture is cropped, cleaned and saved to exactly that size, resolution and file size. The picture never leaves this device.</p>
 
     <div class="photo-wrap">
 
@@ -1400,7 +1507,7 @@
             <button id="btnPhPick" class="ghost tiny">Choose file</button>
             <button id="btnPhWhole" class="ghost tiny">Whole picture</button>
             <button id="btnPhRotate" class="ghost tiny">Turn 90°</button>
-            <label style="display:flex;align-items:center;gap:5px;font-size:12.5px"><input type="checkbox" id="phGuides" checked style="accent-color:var(--accent)">head guide</label>
+            <label id="phGuidesLbl" style="display:flex;align-items:center;gap:5px;font-size:12.5px"><input type="checkbox" id="phGuides" checked style="accent-color:var(--accent)">head guide</label>
           </div>
         </div>
 
@@ -1418,7 +1525,7 @@
           <label for="phPreset">Common sizes</label>
           <select id="phPreset" style="max-width:300px"></select>
           <label for="phKind">This is a</label>
-          <select id="phKind"><option value="photo" selected>photograph</option><option value="sign">signature</option></select>
+          <select id="phKind"><option value="photo" selected>photograph</option><option value="sign">signature</option><option value="doc">document / ID card / any picture</option></select>
         </div>
         <div class="field">
           <label for="phW">Width</label><input type="number" id="phW" value="35" min="1" step="0.5" style="width:84px">
@@ -1532,6 +1639,26 @@
           </div>
         </div>
 
+        <div id="phDocBox" style="display:none">
+          <h3>4 — Document</h3>
+          <div class="btn-row" style="margin-bottom:10px">
+            <button id="btnPhFlatten" class="ghost small">Find the edges and straighten (4 corners)</button>
+          </div>
+          <div class="field">
+            <label for="phDocFilter">Look</label>
+            <select id="phDocFilter">
+              <option value="none" selected>as photographed</option>
+              <option value="auto">scanned — white paper, colour kept</option>
+              <option value="gray">scanned — grey</option>
+              <option value="bw">scanned — black &amp; white</option>
+            </select>
+          </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="phFreeCrop" style="accent-color:var(--accent)">free crop — pull any corner; the height follows the crop</label>
+          </div>
+          <p class="hint">A card or page photographed at a slant comes out straight and the right shape once its four corners are set. Brightness, contrast and sharpen above work on it as well. Use the finished picture in <b>Fill &amp; edit</b> (🖼 Photo / image → The finished picture) to put it on a page of a PDF.</p>
+        </div>
+
         <div id="phSignBg" style="display:none">
           <h3>4 — Ink</h3>
           <div class="field">
@@ -1602,7 +1729,7 @@
 
   <footer>
     Works offline once opened (reading scans with OCR excepted). Built with pdf-lib, pdf.js, JSZip, TensorFlow.js and tesseract.js — see the README for credits and licences.
-    <span>PDF &amp; Photo Toolkit v4.1 · 2026-10-27</span>
+    <span>PDF &amp; Photo Toolkit v4.2 · 2026-10-27</span>
   </footer>
 </div>
 
@@ -2575,7 +2702,10 @@ function createPhoto() {
     { id: "px200x230",  label: "200 x 230 px",                        kind: "photo", w: 200, h: 230, unit: "px", dpi: 200, maxKB: 0 },
     { id: "sign4x2",    label: "Signature 4 x 2 cm",                  kind: "sign",  w: 40,  h: 20,  unit: "mm", dpi: 300, maxKB: 0 },
     { id: "sign140x60", label: "Signature 140 x 60 px, 10-20 KB",     kind: "sign",  w: 140, h: 60,  unit: "px", dpi: 200, maxKB: 20 },
-    { id: "sign35x15",  label: "Signature 3.5 x 1.5 cm",              kind: "sign",  w: 35,  h: 15,  unit: "mm", dpi: 300, maxKB: 0 }
+    { id: "sign35x15",  label: "Signature 3.5 x 1.5 cm",              kind: "sign",  w: 35,  h: 15,  unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "idcard",     label: "ID card (Aadhaar, PAN, voter) 85.6 x 54 mm", kind: "doc", w: 85.6, h: 54, unit: "mm", dpi: 300, maxKB: 0 },
+    { id: "docA4",      label: "Document page A4, 150 DPI",           kind: "doc",   w: 210, h: 297, unit: "mm", dpi: 150, maxKB: 0 },
+    { id: "docfree",    label: "Document or picture, any shape",      kind: "doc",   w: 100, h: 70,  unit: "mm", dpi: 300, maxKB: 0, free: true }
   ];
 
   /* ---------- pixel adjustments ---------- */
@@ -2816,6 +2946,427 @@ function createPhoto() {
 }
 
 
+/* ===================== ENGINE: document scanner =========================== */
+/* ---------------------------------------------------------------
+   Document scanner engine, in the manner of a phone scanning app.
+   - find: the four corners of a sheet, card or page in a photograph
+   - flatten: straighten the sheet out of its perspective, to its true shape
+   - clean: lift shadows and make the paper white (colour, grey, black & white)
+   Plain arithmetic on pixel arrays, so it runs on the phone and is tested
+   without a browser. Corners are listed top-left, top-right,
+   bottom-right, bottom-left.
+   --------------------------------------------------------------- */
+function createScanner() {
+
+  /* ---------- small helpers ---------- */
+  const lumOf = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  function boxBlur(src, w, h, r) {
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      let acc = 0;
+      const row = y * w;
+      for (let x = -r; x <= r; x++) acc += src[row + Math.min(w - 1, Math.max(0, x))];
+      for (let x = 0; x < w; x++) {
+        tmp[row + x] = acc / (2 * r + 1);
+        acc += src[row + Math.min(w - 1, x + r + 1)] - src[row + Math.max(0, x - r)];
+      }
+    }
+    for (let x = 0; x < w; x++) {
+      let acc = 0;
+      for (let y = -r; y <= r; y++) acc += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+      for (let y = 0; y < h; y++) {
+        out[y * w + x] = acc / (2 * r + 1);
+        acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+      }
+    }
+    return out;
+  }
+
+  function otsu(hist) {
+    let total = 0, sum = 0;
+    for (let i = 0; i < hist.length; i++) { total += hist[i]; sum += i * hist[i]; }
+    let sumB = 0, wB = 0, best = 0, thr = 0;
+    for (let t = 0; t < hist.length; t++) {
+      wB += hist[t]; if (!wB) continue;
+      const wF = total - wB; if (!wF) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB, mF = (sum - sumB) / wF;
+      const between = wB * wF * (mB - mF) * (mB - mF);
+      if (between > best) { best = between; thr = t; }
+    }
+    return thr;
+  }
+
+  /* put four points in the order top-left, top-right, bottom-right, bottom-left */
+  function orderQuad(pts) {
+    const cx = pts.reduce((a, p) => a + p.x, 0) / 4, cy = pts.reduce((a, p) => a + p.y, 0) / 4;
+    const s = pts.slice().sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+    /* clockwise on screen from the smallest angle; start at the point nearest the top-left */
+    let start = 0, best = Infinity;
+    s.forEach((p, i) => { const v = p.x + p.y; if (v < best) { best = v; start = i; } });
+    return [0, 1, 2, 3].map(k => ({ x: s[(start + k) % 4].x, y: s[(start + k) % 4].y }));
+  }
+
+  const polyArea = q => {
+    let a = 0;
+    for (let i = 0; i < q.length; i++) { const p = q[i], n = q[(i + 1) % q.length]; a += p.x * n.y - n.x * p.y; }
+    return Math.abs(a) / 2;
+  };
+
+  function hull(points) {
+    const p = points.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+    if (p.length < 3) return p;
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lower = [], upper = [];
+    for (const q of p) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop(); lower.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop(); upper.push(q); }
+    upper.pop(); lower.pop();
+    return lower.concat(upper);
+  }
+
+  /* the largest four-cornered shape whose corners are corners of the outline */
+  function bestQuad(h) {
+    let pts = h;
+    if (pts.length > 48) { const step = pts.length / 48; pts = Array.from({ length: 48 }, (_, i) => h[Math.floor(i * step)]); }
+    const n = pts.length;
+    if (n < 4) return null;
+    let best = -1, q = null;
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++) for (let d = c + 1; d < n; d++) {
+      const ar = polyArea([pts[a], pts[b], pts[c], pts[d]]);
+      if (ar > best) { best = ar; q = [pts[a], pts[b], pts[c], pts[d]]; }
+    }
+    return q;
+  }
+
+  /* ---------- find the sheet ----------
+     rgba: pixels of a small copy of the photograph (about 320 px across).
+     The sheet is whatever differs most from the colour round the edges of
+     the photograph - a white page on a dark table, a card on a cloth. */
+  function detect(rgba, w, h) {
+    const n = w * h;
+    const R = new Float32Array(n), G = new Float32Array(n), B = new Float32Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) { R[i] = rgba[p]; G[i] = rgba[p + 1]; B[i] = rgba[p + 2]; }
+    const r = Math.max(1, Math.round(Math.min(w, h) / 160));
+    const r2 = boxBlur(R, w, h, r), g2 = boxBlur(G, w, h, r), b2 = boxBlur(B, w, h, r);
+
+    /* colour of the surround: the median along a thin band at the edges */
+    const band = Math.max(2, Math.round(Math.min(w, h) * 0.02));
+    const rs = [], gs = [], bs = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (x >= band && x < w - band && y >= band && y < h - band) continue;
+      const i = y * w + x; rs.push(r2[i]); gs.push(g2[i]); bs.push(b2[i]);
+    }
+    const med = a => { a.sort((x, y) => x - y); return a[a.length >> 1]; };
+    const bg = [med(rs), med(gs), med(bs)];
+
+    const d = new Float32Array(n), hist = new Uint32Array(256);
+    for (let i = 0; i < n; i++) {
+      const v = Math.hypot(r2[i] - bg[0], g2[i] - bg[1], b2[i] - bg[2]);
+      d[i] = v; hist[Math.min(255, v | 0)]++;
+    }
+    const thr = Math.max(22, otsu(hist));
+
+    /* keep the sheet, drop specks: a pixel stays if most of its neighbourhood does */
+    const raw = new Float32Array(n);
+    for (let i = 0; i < n; i++) raw[i] = d[i] > thr ? 1 : 0;
+    const sm = boxBlur(raw, w, h, Math.max(1, r));
+    const mask = new Uint8Array(n);
+    for (let i = 0; i < n; i++) mask[i] = sm[i] > 0.5 ? 1 : 0;
+
+    /* the largest connected piece, preferring the one under the centre */
+    const lab = new Int32Array(n), stack = new Int32Array(n);
+    let best = null, id = 0;
+    const centre = (h >> 1) * w + (w >> 1);
+    for (let s = 0; s < n; s++) {
+      if (!mask[s] || lab[s]) continue;
+      id++;
+      let top = 0, area = 0, minX = w, maxX = 0, minY = h, maxY = 0, hasC = false;
+      stack[top++] = s; lab[s] = id;
+      const rows = new Map();
+      while (top) {
+        const i = stack[--top];
+        area++;
+        const x = i % w, y = (i / w) | 0;
+        if (i === centre) hasC = true;
+        if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+        const rr = rows.get(y);
+        if (!rr) rows.set(y, [x, x]); else { if (x < rr[0]) rr[0] = x; if (x > rr[1]) rr[1] = x; }
+        if (x > 0 && mask[i - 1] && !lab[i - 1]) { lab[i - 1] = id; stack[top++] = i - 1; }
+        if (x < w - 1 && mask[i + 1] && !lab[i + 1]) { lab[i + 1] = id; stack[top++] = i + 1; }
+        if (y > 0 && mask[i - w] && !lab[i - w]) { lab[i - w] = id; stack[top++] = i - w; }
+        if (y < h - 1 && mask[i + w] && !lab[i + w]) { lab[i + w] = id; stack[top++] = i + w; }
+      }
+      const score = area * (hasC ? 1.6 : 1);
+      if (!best || score > best.score) best = { score, area, rows, minX, maxX, minY, maxY };
+    }
+    if (!best || best.area < n * 0.06) return null;
+
+    const pts = [];
+    best.rows.forEach((rr, y) => { pts.push({ x: rr[0], y }, { x: rr[1] + 1, y }, { x: rr[0], y: y + 1 }, { x: rr[1] + 1, y: y + 1 }); });
+    const hl = hull(pts);
+    const q = bestQuad(hl);
+    if (!q) return null;
+    const qa = polyArea(q), ha = polyArea(hl);
+    if (qa < n * 0.06) return null;
+    return { quad: orderQuad(q), confidence: Math.min(1, qa / Math.max(1, ha)), coverage: qa / n };
+  }
+
+  /* ---------- perspective ---------- */
+  /* the 3x3 matrix taking the four points src onto the four points dst */
+  function homography(src, dst) {
+    const A = [], b = [];
+    for (let i = 0; i < 4; i++) {
+      const { x, y } = src[i], X = dst[i].x, Y = dst[i].y;
+      A.push([x, y, 1, 0, 0, 0, -x * X, -y * X]); b.push(X);
+      A.push([0, 0, 0, x, y, 1, -x * Y, -y * Y]); b.push(Y);
+    }
+    for (let c = 0; c < 8; c++) {
+      let piv = c;
+      for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [b[c], b[piv]] = [b[piv], b[c]];
+      const d = A[c][c]; if (Math.abs(d) < 1e-12) return null;
+      for (let r = 0; r < 8; r++) {
+        if (r === c) continue;
+        const f = A[r][c] / d;
+        if (!f) continue;
+        for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k];
+        b[r] -= f * b[c];
+      }
+    }
+    const hm = b.map((v, i) => v / A[i][i]);
+    return [hm[0], hm[1], hm[2], hm[3], hm[4], hm[5], hm[6], hm[7], 1];
+  }
+  const apply = (H, x, y) => {
+    const z = H[6] * x + H[7] * y + H[8];
+    return { x: (H[0] * x + H[1] * y + H[2]) / z, y: (H[3] * x + H[4] * y + H[5]) / z };
+  };
+
+  /* The true width and height of the sheet. A sheet photographed at a slant
+     looks shorter than it is; the camera's geometry (Zhang & He, 2007) gives
+     its real proportions back. If the photograph is nearly straight on, the
+     longer of each pair of opposite edges is used. */
+  function flatSize(q, imgW, imgH) {
+    const wTop = dist(q[0], q[1]), wBot = dist(q[3], q[2]);
+    const hL = dist(q[0], q[3]), hR = dist(q[1], q[2]);
+    let W = Math.max(wTop, wBot), H = Math.max(hL, hR);
+    const simple = W / H;
+    try {
+      const u0 = imgW / 2, v0 = imgH / 2;
+      const m = p => [p.x - u0, p.y - v0, 1];
+      const m1 = m(q[0]), m2 = m(q[1]), m3 = m(q[3]), m4 = m(q[2]);
+      const cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      const k2 = dot(cr(m1, m4), m3) / dot(cr(m2, m4), m3);
+      const k3 = dot(cr(m1, m4), m2) / dot(cr(m3, m4), m2);
+      const n2 = [k2 * m2[0] - m1[0], k2 * m2[1] - m1[1], k2 * m2[2] - m1[2]];
+      const n3 = [k3 * m3[0] - m1[0], k3 * m3[1] - m1[1], k3 * m3[2] - m1[2]];
+      /* the camera's focal length, from the photograph if its geometry allows,
+         otherwise a phone's usual one: about 3/4 of the picture's long side */
+      const long = Math.max(imgW, imgH);
+      let f2 = -(n2[0] * n3[0] + n2[1] * n3[1]) / (n2[2] * n3[2]);
+      if (!(f2 > 0) || !isFinite(f2) || f2 < (0.35 * long) ** 2 || f2 > (3 * long) ** 2) f2 = (0.75 * long) ** 2;
+      const ratio = Math.sqrt((n2[0] * n2[0] / f2 + n2[1] * n2[1] / f2 + n2[2] * n2[2]) /
+                              (n3[0] * n3[0] / f2 + n3[1] * n3[1] / f2 + n3[2] * n3[2]));
+      /* trust it only within reason: a wild value means the geometry was too weak */
+      if (isFinite(ratio) && ratio > 0 && ratio / simple < 1.6 && simple / ratio < 1.6) {
+        if (ratio >= simple) H = W / ratio; else W = H * ratio;
+      }
+    } catch (e) { /* keep the simple size */ }
+    return { w: Math.max(1, Math.round(W)), h: Math.max(1, Math.round(H)) };
+  }
+
+  /* flatten: out-of-place, bilinear; returns RGBA of outW x outH */
+  function warp(src, sw, sh, quad, outW, outH) {
+    const rect = [{ x: 0, y: 0 }, { x: outW, y: 0 }, { x: outW, y: outH }, { x: 0, y: outH }];
+    const H = homography(rect, quad);
+    const out = new Uint8ClampedArray(outW * outH * 4);
+    if (!H) return out;
+    for (let y = 0; y < outH; y++) {
+      const yy = y + 0.5;
+      let nx = H[0] * 0.5 + H[1] * yy + H[2], ny = H[3] * 0.5 + H[4] * yy + H[5], nz = H[6] * 0.5 + H[7] * yy + H[8];
+      let o = y * outW * 4;
+      for (let x = 0; x < outW; x++, o += 4, nx += H[0], ny += H[3], nz += H[6]) {
+        let sx = nx / nz - 0.5, sy = ny / nz - 0.5;
+        if (sx < 0) sx = 0; else if (sx > sw - 1) sx = sw - 1;
+        if (sy < 0) sy = 0; else if (sy > sh - 1) sy = sh - 1;
+        const x0 = sx | 0, y0 = sy | 0, x1 = x0 + 1 < sw ? x0 + 1 : x0, y1 = y0 + 1 < sh ? y0 + 1 : y0;
+        const fx = sx - x0, fy = sy - y0;
+        const p00 = (y0 * sw + x0) * 4, p10 = (y0 * sw + x1) * 4, p01 = (y1 * sw + x0) * 4, p11 = (y1 * sw + x1) * 4;
+        for (let c = 0; c < 3; c++) {
+          const top = src[p00 + c] + (src[p10 + c] - src[p00 + c]) * fx;
+          const bot = src[p01 + c] + (src[p11 + c] - src[p01 + c]) * fx;
+          out[o + c] = top + (bot - top) * fy;
+        }
+        out[o + 3] = 255;
+      }
+    }
+    return out;
+  }
+
+  /* ---------- clean the paper ----------
+     The light falling on the sheet is estimated block by block from the
+     brightest pixels of each block (the paper between the letters), then
+     divided out, so shadows and a yellow lamp go and the paper turns white
+     while the ink keeps its colour. */
+  function paperLight(px, w, h) {
+    const B = Math.max(8, Math.round(Math.max(w, h) / 36));
+    const gw = Math.ceil(w / B), gh = Math.ceil(h / B), cells = gw * gh;
+    const hist = new Uint32Array(cells * 64);
+    const cnt = new Uint32Array(cells);
+    for (let y = 0; y < h; y++) {
+      const gy = (y / B) | 0;
+      for (let x = 0; x < w; x++) {
+        const p = (y * w + x) * 4, c = gy * gw + ((x / B) | 0);
+        hist[c * 64 + (lumOf(px[p], px[p + 1], px[p + 2]) >> 2)]++; cnt[c]++;
+      }
+    }
+    /* per block: the level that the brightest tenth of it reaches */
+    const cut = new Float32Array(cells);
+    for (let c = 0; c < cells; c++) {
+      let need = cnt[c] * 0.1, k = 63;
+      for (; k > 0; k--) { need -= hist[c * 64 + k]; if (need <= 0) break; }
+      cut[c] = k * 4;
+    }
+    const sR = new Float32Array(cells), sG = new Float32Array(cells), sB = new Float32Array(cells), sN = new Float32Array(cells);
+    for (let y = 0; y < h; y++) {
+      const gy = (y / B) | 0;
+      for (let x = 0; x < w; x++) {
+        const p = (y * w + x) * 4, c = gy * gw + ((x / B) | 0);
+        if (lumOf(px[p], px[p + 1], px[p + 2]) >= cut[c]) { sR[c] += px[p]; sG[c] += px[p + 1]; sB[c] += px[p + 2]; sN[c]++; }
+      }
+    }
+    let L = new Float32Array(cells * 3);
+    for (let c = 0; c < cells; c++) { const k = Math.max(1, sN[c]); L[c * 3] = sR[c] / k; L[c * 3 + 1] = sG[c] / k; L[c * 3 + 2] = sB[c] / k; }
+    /* A block that is all picture (the photograph on an ID card) or all ink is
+       not paper. A picture begins with a sharp step down from the paper beside
+       it, where a shadow only darkens gradually; so the steps are found first,
+       and the picture is grown inward from them over blocks of like darkness.
+       Its light is then filled in from the paper round it, ring by ring. */
+    const lum = new Float32Array(cells);
+    for (let c = 0; c < cells; c++) lum[c] = lumOf(L[c * 3], L[c * 3 + 1], L[c * 3 + 2]);
+    const P = Array.from(lum).sort((a, b) => a - b)[Math.floor(cells * 0.9)];
+    const bad = new Uint8Array(cells), queue = [];
+    for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+      const c = gy * gw + gx;
+      if (lum[c] >= 0.8 * P) continue;
+      let mx = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = gx + dx, yy = gy + dy;
+        if (xx >= 0 && yy >= 0 && xx < gw && yy < gh) mx = Math.max(mx, lum[yy * gw + xx]);
+      }
+      if (lum[c] < 0.8 * mx) { bad[c] = 1; queue.push(c); }
+    }
+    while (queue.length) {
+      const c = queue.pop(), gx = c % gw, gy = (c / gw) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = gx + dx, yy = gy + dy;
+        if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+        const q = yy * gw + xx;
+        if (bad[q] || lum[q] >= 0.8 * P || lum[q] > lum[c] * 1.15) continue;
+        bad[q] = 1; queue.push(q);
+      }
+    }
+    const ok = new Uint8Array(cells);
+    for (let c = 0; c < cells; c++) ok[c] = bad[c] ? 0 : 1;
+    let left = 0;
+    for (let c = 0; c < cells; c++) if (!ok[c]) left++;
+    while (left > 0 && left < cells) {
+      const add = [];
+      for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+        const c = gy * gw + gx; if (ok[c]) continue;
+        let r = 0, g = 0, b = 0, k = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const xx = gx + dx, yy = gy + dy;
+          if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+          const q = yy * gw + xx; if (!ok[q]) continue;
+          r += L[q * 3]; g += L[q * 3 + 1]; b += L[q * 3 + 2]; k++;
+        }
+        if (k) add.push([c, r / k, g / k, b / k]);
+      }
+      if (!add.length) break;
+      add.forEach(([c, r, g, b]) => { L[c * 3] = r; L[c * 3 + 1] = g; L[c * 3 + 2] = b; ok[c] = 1; left--; });
+    }
+    for (let ch = 0; ch < 3; ch++) {
+      const one = new Float32Array(cells);
+      for (let c = 0; c < cells; c++) one[c] = L[c * 3 + ch];
+      const s = boxBlur(boxBlur(one, gw, gh, 1), gw, gh, 1);
+      for (let c = 0; c < cells; c++) L[c * 3 + ch] = Math.max(40, s[c]);
+    }
+    return { L, gw, gh, B };
+  }
+
+  function whiten(px, w, h) {
+    const { L, gw, gh, B } = paperLight(px, w, h);
+    for (let y = 0; y < h; y++) {
+      let fy = (y + 0.5) / B - 0.5; if (fy < 0) fy = 0; if (fy > gh - 1) fy = gh - 1;
+      const y0 = fy | 0, y1 = Math.min(gh - 1, y0 + 1), ty = fy - y0;
+      for (let x = 0; x < w; x++) {
+        let fx = (x + 0.5) / B - 0.5; if (fx < 0) fx = 0; if (fx > gw - 1) fx = gw - 1;
+        const x0 = fx | 0, x1 = Math.min(gw - 1, x0 + 1), tx = fx - x0;
+        const p = (y * w + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          const a = L[(y0 * gw + x0) * 3 + c], b = L[(y0 * gw + x1) * 3 + c], d = L[(y1 * gw + x0) * 3 + c], e = L[(y1 * gw + x1) * 3 + c];
+          const bg = (a + (b - a) * tx) * (1 - ty) + (d + (e - d) * tx) * ty;
+          px[p + c] = Math.min(255, px[p + c] * 255 / bg);
+        }
+      }
+    }
+  }
+
+  function percentileLum(px, q) {
+    const hist = new Uint32Array(256);
+    let n = 0;
+    for (let p = 0; p < px.length; p += 4) { hist[lumOf(px[p], px[p + 1], px[p + 2]) | 0]++; n++; }
+    let need = n * q, k = 0;
+    for (; k < 255; k++) { need -= hist[k]; if (need <= 0) break; }
+    return { k, hist };
+  }
+
+  /* kind: "original" | "auto" (clean colour) | "gray" | "bw" (black & white) */
+  function clean(px, w, h, kind) {
+    if (kind === "original" || !kind) return px;
+    whiten(px, w, h);
+    const bp = Math.min(110, percentileLum(px, 0.01).k);
+    const span = 255 - bp;
+    if (kind === "auto") {
+      for (let p = 0; p < px.length; p += 4) {
+        const l = lumOf(px[p], px[p + 1], px[p + 2]);
+        for (let c = 0; c < 3; c++) {
+          let v = px[p + c] + (px[p + c] - l) * 0.25;                 // a little more colour
+          v = Math.max(0, (v - bp) / span);
+          px[p + c] = 255 * Math.pow(v, 1.25);                          // ink darker, paper stays white
+        }
+      }
+    } else if (kind === "gray") {
+      for (let p = 0; p < px.length; p += 4) {
+        const v = 255 * Math.pow(Math.max(0, (lumOf(px[p], px[p + 1], px[p + 2]) - bp) / span), 1.3);
+        px[p] = px[p + 1] = px[p + 2] = v;
+      }
+    } else if (kind === "bw") {
+      const { hist } = percentileLum(px, 0.5);
+      const t = Math.min(215, Math.max(130, otsu(hist) + 12));
+      for (let p = 0; p < px.length; p += 4) {
+        const l = lumOf(px[p], px[p + 1], px[p + 2]);
+        let a = (l - (t - 22)) / 44; a = a < 0 ? 0 : (a > 1 ? 1 : a);
+        px[p] = px[p + 1] = px[p + 2] = 255 * a * a * (3 - 2 * a);
+      }
+    }
+    return px;
+  }
+
+  const FILTERS = [
+    { id: "auto", label: "Scanned colour" },
+    { id: "gray", label: "Grey" },
+    { id: "bw", label: "Black & white" },
+    { id: "original", label: "Original" }
+  ];
+
+  return { detect, orderQuad, homography, apply, flatSize, warp, clean, whiten, otsu, FILTERS };
+}
+
+
 /* ===================== INTERFACE ========================================== */
 /* eslint-disable no-unused-vars */
 pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
@@ -2855,11 +3406,33 @@ async function openFile(file) {
   await setWorking(bytes, file.name, "original file");
 }
 
+/* A new PDF straight from the camera or from photos becomes the working file */
+async function newPdfFromScans(r) {
+  const out = $("scanNewOut");
+  if (!r.images.length) return;
+  out.innerHTML = "<div class='note'>Making the PDF…</div>";
+  try {
+    const bytes = await scanPdf(r.images, r.size);
+    const name = scanName();
+    S.original = { bytes, name }; S.history = [];
+    await setWorking(bytes, name, "scanned");
+    out.innerHTML = "<div class='note good'><b>" + esc(name) + "</b> — " + r.images.length + " page" + (r.images.length === 1 ? "" : "s") + ", " + human(bytes.length) +
+      ". It is now the working file: add more pages in <b>Organise pages</b>, fill it in <b>Fill &amp; edit</b>, or make it smaller in <b>Compress</b>.</div>";
+    fileButtons(out, new Blob([bytes], { type: "application/pdf" }), name);
+  } catch (err) { out.innerHTML = "<div class='note bad'>The PDF could not be made: " + esc(err.message) + "</div>"; }
+}
+$("btnScanNew").addEventListener("click", () => openScanner({ multi: true, doneLabel: "Make PDF", onDone: newPdfFromScans }));
+$("btnPhotosNew").addEventListener("click", () => $("photosNewInput").click());
+$("photosNewInput").addEventListener("change", e => {
+  const files = [...e.target.files]; e.target.value = "";
+  if (files.length) openScanner({ multi: true, doneLabel: "Make PDF", files, onDone: newPdfFromScans });
+});
+
 /* Replace the working file (used by compress and organise as well). */
 async function setWorking(bytes, name, label) {
   lockAll(true);
   $("dropSub").textContent = name;
-  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut", "splitGridOut", "partsOut", "filesPreviewOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
+  ["suggestOut", "checkOut", "splitOut", "compressOut", "orgOut", "orgScanOut", "gridOut", "scanOut", "detectOut", "pageTableOut", "inspectOut", "numOut", "numGridOut", "splitGridOut", "partsOut", "filesPreviewOut"].forEach(id => { if ($(id)) $(id).innerHTML = ""; });
   if (typeof fillReset === "function") fillReset();
   S.pageText = null; S.ink = null; S.thumbs.clear(); if (S.skip) S.skip.clear(); if (S.cuts) S.cuts.clear(); S.partNames = []; S.finalNames = null; if (typeof PREVIEW_CACHE !== "undefined") PREVIEW_CACHE.clear(); S.docs = {}; S.order = []; S.files = [];
 
@@ -3084,6 +3657,7 @@ $("btnSplit").addEventListener("click", async () => {
 });
 
 function saveBlob(blob, name) {
+  rememberFile(blob, name);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = name;
@@ -3282,6 +3856,7 @@ $("btnCompress").addEventListener("click", async () => {
     "<button id='btnUseC' class='ghost'>Use as working file</button></div>" +
     "<div class='note'>Using it as the working file lets you split the compressed version straight away. The original stays available under the working-file banner above.</div>";
   $("btnDlC").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  shareBeside("btnDlC", new Blob([bytes], { type: "application/pdf" }), fname);
   $("btnUseC").addEventListener("click", async () => {
     await setWorking(bytes, fname, "compressed q" + Math.round(set.q * 100) + "/" + set.dpi + "dpi" + (set.gray ? "/grey" : ""));
     showTab("split");
@@ -3297,33 +3872,59 @@ $("insInput").addEventListener("change", async e => {
   $("insName").textContent = f.name;
 });
 
-$("btnInsert").addEventListener("click", async () => {
-  const out = $("orgOut");
-  if (!S.pendingIns) { out.innerHTML = "<div class='note bad'>Choose a PDF to insert first.</div>"; return; }
+/* put pages of another PDF into the new order; returns how many, or throws with a reason */
+async function insertPdfBytes(bytes, name, pages, where, after) {
   const key = "ins" + (++S.insCount);
   let lib, pj;
   try {
-    lib = await PDFLib.PDFDocument.load(S.pendingIns.bytes.slice(), { ignoreEncryption: true });
-    pj = await pdfjsLib.getDocument({ data: S.pendingIns.bytes.slice() }).promise;
-  } catch (err) { out.innerHTML = "<div class='note bad'>That file could not be opened: " + esc(err.message) + "</div>"; return; }
+    lib = await PDFLib.PDFDocument.load(bytes.slice(), { ignoreEncryption: true });
+    pj = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+  } catch (err) { throw new Error("That file could not be opened: " + err.message); }
   const n = lib.getPageCount();
-  S.docs[key] = { lib, pdfjs: pj, name: S.pendingIns.name };
-
-  const { order, errors } = DET.parseOrder($("insPages").value.replace(/end|last/gi, String(n)), n);
-  if (!order.length) { out.innerHTML = "<div class='note bad'>" + (errors.map(esc).join("<br>") || "No pages selected from that file.") + "</div>"; return; }
+  S.docs[key] = { lib, pdfjs: pj, name };
+  const { order, errors } = DET.parseOrder(pages.replace(/end|last/gi, String(n)), n);
+  if (!order.length) throw new Error(errors.join(" ") || "No pages selected from that file.");
   const items = order.map(i => ({ k: key, i, rot: 0 }));
-
-  orgSnap("insert " + S.pendingIns.name);
-  const where = $("insWhere").value;
+  orgSnap("insert " + name);
   if (where === "start") S.order = items.concat(S.order);
   else if (where === "end") S.order = S.order.concat(items);
   else {
-    const at = Math.min(Math.max(1, parseInt($("insAfter").value, 10) || 1), S.order.length);
+    const at = Math.min(Math.max(1, parseInt(after, 10) || 1), S.order.length);
     S.order = S.order.slice(0, at).concat(items, S.order.slice(at));
   }
-  out.innerHTML = "<div class='note good'>" + items.length + " page(s) from " + esc(S.pendingIns.name) +
-    " inserted. They are the coloured cards below. Press <b>Build new PDF</b> when the order is right.</div>";
   await renderGrid();
+  return items.length;
+}
+
+$("btnInsert").addEventListener("click", async () => {
+  const out = $("orgOut");
+  if (!S.pendingIns) { out.innerHTML = "<div class='note bad'>Choose a PDF to insert first.</div>"; return; }
+  try {
+    const k = await insertPdfBytes(S.pendingIns.bytes, S.pendingIns.name, $("insPages").value, $("insWhere").value, $("insAfter").value);
+    out.innerHTML = "<div class='note good'>" + k + " page(s) from " + esc(S.pendingIns.name) +
+      " inserted. They are the coloured cards below. Press <b>Build new PDF</b> when the order is right.</div>";
+  } catch (err) { out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>"; }
+});
+
+/* ---- scanned pages into the new order ---- */
+async function orgAddScans(r) {
+  const out = $("orgScanOut");
+  if (!r.images.length) return;
+  out.innerHTML = "<div class='note'>Making the pages…</div>";
+  try {
+    const bytes = await scanPdf(r.images, r.size);
+    const name = scanName();
+    const k = await insertPdfBytes(bytes, name, "1-end", $("scWhere").value, $("scAfter").value);
+    out.innerHTML = "<div class='note good'>" + k + " scanned page" + (k === 1 ? "" : "s") + " added — the coloured cards below. " +
+      "Press <b>Build new PDF</b> when the order is right. The scan on its own, " + human(bytes.length) + ":</div>";
+    fileButtons(out, new Blob([bytes], { type: "application/pdf" }), name);
+  } catch (err) { out.innerHTML = "<div class='note bad'>" + esc(err.message) + "</div>"; }
+}
+$("btnOrgScan").addEventListener("click", () => openScanner({ multi: true, doneLabel: "Add pages", onDone: orgAddScans }));
+$("btnOrgPhotos").addEventListener("click", () => $("orgPhotosInput").click());
+$("orgPhotosInput").addEventListener("change", e => {
+  const files = [...e.target.files]; e.target.value = "";
+  if (files.length) openScanner({ multi: true, doneLabel: "Add pages", files, onDone: orgAddScans });
 });
 
 $("btnResetOrder").addEventListener("click", async () => {
@@ -3826,6 +4427,7 @@ $("btnBuildOrg").addEventListener("click", async () => {
     "<div class='btn-row' style='margin-top:12px'><button id='btnDlO'>Download " + esc(fname) + "</button>" +
     "<button id='btnUseO' class='ghost'>Use as working file</button></div>";
   $("btnDlO").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  shareBeside("btnDlO", new Blob([bytes], { type: "application/pdf" }), fname);
   $("btnUseO").addEventListener("click", async () => { await setWorking(bytes, fname, "reorganised " + S.order.length + "p"); showTab("split"); });
 });
 
@@ -4782,6 +5384,7 @@ $("btnNumApply").addEventListener("click", async () => {
     "<button id='btnUseN' class='ghost'>Use as working file</button></div>" +
     "<div class='note'>Each run starts from the working file, so stamps never pile up. If something sits over the text, change the position or margins and apply again.</div>";
   $("btnDlN").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  shareBeside("btnDlN", new Blob([bytes], { type: "application/pdf" }), fname);
   $("btnUseN").addEventListener("click", async () => { await setWorking(bytes, fname, did.join(" + ")); showTab("split"); });
 });
 
@@ -5142,6 +5745,7 @@ async function runImpose(previewOnly) {
     "<div class='btn-row' style='margin-top:12px'><button id='btnDlNup'>Download " + esc(fname) + "</button>" +
     "<button id='btnUseNup' class='ghost'>Use as working file</button></div>";
   $("btnDlNup").addEventListener("click", () => saveBlob(new Blob([res.bytes], { type: "application/pdf" }), fname));
+  shareBeside("btnDlNup", new Blob([res.bytes], { type: "application/pdf" }), fname);
   $("btnUseNup").addEventListener("click", async () => {
     await setWorking(res.bytes, fname, o.per + "-up, " + res.sheets + " sheets");
     showTab("compress");
@@ -5174,6 +5778,7 @@ $("phPreset").addEventListener("change", () => {
     $("phW").value = p.w; $("phH").value = p.h; $("phUnit").value = p.unit;
     $("phDpi").value = p.dpi; $("phMaxKB").value = p.maxKB || "";
     $("phKind").value = p.kind;
+    $("phFreeCrop").checked = !!p.free;
   }
   onKindChange(); sizeNote(); fitCropToAspect(); renderStage(); queueOutput();
 });
@@ -5192,19 +5797,52 @@ function onMethodChange() {
 $("phMethod").addEventListener("change", () => { onMethodChange(); queueOutput(); });
 
 function onKindChange() {
-  const sign = $("phKind").value === "sign";
-  $("phPhotoBg").style.display = sign ? "none" : "";
+  const kind = $("phKind").value, sign = kind === "sign", doc = kind === "doc";
+  $("phPhotoBg").style.display = sign || doc ? "none" : "";
   $("phSignBg").style.display = sign ? "" : "none";
-  if (!sign) onMethodChange();
+  $("phDocBox").style.display = doc ? "" : "none";
+  $("phGuidesLbl").style.display = kind === "photo" ? "flex" : "none";
+  $("btnPhCam").innerHTML = doc ? "&#128247; Scan it with the camera" : "&#128247; Take it with the camera";
+  if (!sign && !doc) onMethodChange();
+  if (!doc) $("phFreeCrop").checked = false;
+  $("phH").disabled = freeCrop();
+  fitCropToAspect(); renderStage(); sizeNote();
+}
+$("phFreeCrop").addEventListener("change", () => {
+  $("phH").disabled = freeCrop();
+  if (freeCrop() && S.photo.rot) defaultCrop();
+  else fitCropToAspect();
+  renderStage(); sizeNote(); queueOutput();
+});
+$("phDocFilter").addEventListener("change", queueOutput);
+
+/* a document with a free crop: any shape, and the height of the output follows it */
+function freeCrop() { return $("phKind").value === "doc" && $("phFreeCrop").checked; }
+function freeAspect(w, h) {
+  const c = S.photo.crop, r = S.photo.rot;
+  return c ? c.w / c.h : (r ? r.width / r.height : w / h);
 }
 
 function targetPx() {
   const unit = $("phUnit").value, dpi = +$("phDpi").value || 300;
-  return { w: PH.toPx(+$("phW").value || 35, unit, dpi), h: PH.toPx(+$("phH").value || 45, unit, dpi), dpi };
+  const w = PH.toPx(+$("phW").value || 35, unit, dpi), h0 = PH.toPx(+$("phH").value || 45, unit, dpi);
+  if (!freeCrop()) return { w, h: h0, dpi };
+  const ar = freeAspect(w, h0);
+  const s = captionText().length ? (+$("phStrip").value) / 100 : 0;
+  let h = h0;
+  for (let i = 0; i < 4; i++) {
+    const b = Math.round((+$("phBorder").value) / 100 * Math.min(w, h) / 12);
+    h = Math.max(8, Math.round(((w - 2 * b) / ar + 2 * b) / (1 - s)));
+  }
+  return { w, h, dpi };
 }
 
 function sizeNote() {
   const t = targetPx();
+  if (freeCrop()) {
+    const u = $("phUnit").value, mm = PH.pxToMm(t.h, t.dpi);
+    $("phH").value = u === "px" ? t.h : u === "cm" ? (mm / 10).toFixed(2) : u === "in" ? (mm / 25.4).toFixed(2) : mm.toFixed(1);
+  }
   $("phSizeNote").innerHTML = "Output: <b>" + t.w + " \u00d7 " + t.h + " px</b> at " + t.dpi + " DPI = " +
     PH.pxToMm(t.w, t.dpi).toFixed(1) + " \u00d7 " + PH.pxToMm(t.h, t.dpi).toFixed(1) +
     " mm on paper. The resolution is written into the file, not merely implied.";
@@ -5226,7 +5864,7 @@ function loadPhoto(f) {
   if (!/^image\//.test(f.type)) { $("phOut").innerHTML = "<div class='note bad'>That is not an image file.</div>"; return; }
   const img = new Image();
   img.onload = () => {
-    S.photo.img = img; S.photo.angle = 0; S.photo.quarter = 0; S.photo.heals = [];
+    S.photo.img = img; S.photo.file = f; S.photo.angle = 0; S.photo.quarter = 0; S.photo.heals = [];
     S.seg = null;
     $("phStraight").value = 0; $("phStraightVal").textContent = "0.0\u00b0";
     $("phName2").textContent = f.name + " \u00b7 " + img.naturalWidth + "\u00d7" + img.naturalHeight;
@@ -5259,6 +5897,7 @@ function buildRotated() {
    is not the same shape as the whole file. The crop follows THAT shape,
    otherwise the face is squeezed to fit. */
 function contentAspect() {
+  if (freeCrop()) return freeAspect(1, 1);
   const t = targetPx();
   const border = Math.round((+$("phBorder").value) / 100 * Math.min(t.w, t.h) / 12);
   const lines = captionText();
@@ -5271,6 +5910,7 @@ function contentAspect() {
 /* ---- the crop rectangle: the picture-area shape, as large as will fit ---- */
 function defaultCrop() {
   const cv = S.photo.rot; if (!cv) return;
+  if (freeCrop()) { S.photo.crop = { x: 0, y: 0, w: cv.width, h: cv.height }; return; }
   const ar = contentAspect();
   let w = cv.width, h = w / ar;
   if (h > cv.height) { h = cv.height; w = h * ar; }
@@ -5280,6 +5920,11 @@ function fitCropToAspect() {
   const cv = S.photo.rot, c = S.photo.crop;
   if (!cv) return;
   if (!c) { defaultCrop(); return; }
+  if (freeCrop()) {
+    const w = Math.min(c.w, cv.width), h = Math.min(c.h, cv.height);
+    S.photo.crop = { x: Math.max(0, Math.min(cv.width - w, c.x)), y: Math.max(0, Math.min(cv.height - h, c.y)), w, h };
+    return;
+  }
   const ar = contentAspect();
   const cx = c.x + c.w / 2, cy = c.y + c.h / 2;
   let w = c.w, h = w / ar;
@@ -5435,6 +6080,17 @@ function renderStage() {
         nw: { x: c0.x + c0.w, y: c0.y + c0.h }, ne: { x: c0.x, y: c0.y + c0.h },
         sw: { x: c0.x + c0.w, y: c0.y }, se: { x: c0.x, y: c0.y }
       }[mode];
+      if (freeCrop()) {
+        /* any shape: the corner simply follows the finger */
+        const left = mode === "nw" || mode === "sw", up = mode === "nw" || mode === "ne";
+        let px = (left ? c0.x : c0.x + c0.w) + dx, py = (up ? c0.y : c0.y + c0.h) + dy;
+        px = Math.max(0, Math.min(img.width, px)); py = Math.max(0, Math.min(img.height, py));
+        px = left ? Math.min(px, anchor.x - 16) : Math.max(px, anchor.x + 16);
+        py = up ? Math.min(py, anchor.y - 16) : Math.max(py, anchor.y + 16);
+        S.photo.crop = { x: Math.min(px, anchor.x), y: Math.min(py, anchor.y), w: Math.abs(px - anchor.x), h: Math.abs(py - anchor.y) };
+        renderStage(); sizeNote(); queueOutput(); ev.preventDefault();
+        return;
+      }
       let w = (mode === "nw" || mode === "sw") ? anchor.x - (c0.x + dx) : (c0.x + c0.w + dx) - anchor.x;
       w = Math.max(24, Math.abs(w));
       const maxW = (mode === "nw" || mode === "sw") ? anchor.x : img.width - anchor.x;
@@ -5527,12 +6183,14 @@ async function buildOutput() {
     out.innerHTML = "<div class='hint' style='text-align:center'>The finished picture appears here as you work.</div>";
     return;
   }
+  if (freeCrop()) sizeNote();
   const t = targetPx();
   const border = Math.round((+$("phBorder").value) / 100 * Math.min(t.w, t.h) / 12);
   const lines = captionText();
   const stripH = lines.length ? Math.round(t.h * (+$("phStrip").value) / 100) : 0;
   const cw = Math.max(8, t.w - border * 2);
   const ch = Math.max(8, t.h - border * 2 - stripH);
+  const isDoc = $("phKind").value === "doc";
 
   const work = document.createElement("canvas");
   work.width = cw; work.height = ch;
@@ -5543,6 +6201,7 @@ async function buildOutput() {
   wctx.drawImage(S.photo.rot, c.x, c.y, c.w, c.h, 0, 0, cw, ch);
 
   let data = wctx.getImageData(0, 0, cw, ch);
+  if (isDoc && $("phDocFilter").value !== "none") SCAN.clean(data.data, cw, ch, $("phDocFilter").value);
   let gain = [1, 1, 1], extra = { brightness: 0, contrast: 0 };
   if (S.photo.auto) { gain = PH.whiteBalanceGain(data); extra = PH.autoLevels(data); }
   PH.adjust(data, {
@@ -5553,7 +6212,7 @@ async function buildOutput() {
   wctx.putImageData(data, 0, 0);
 
   if ($("phKind").value === "sign" && $("phSigMode").value !== "off") inkKey(wctx, cw, ch);
-  else if ($("phBg").value !== "keep") {
+  else if (!isDoc && $("phBg").value !== "keep") {
     if ($("phMethod").value === "ai" && S.seg) {
       compositeAI(wctx, cw, ch, { brightness: (+$("phBright").value) + extra.brightness,
         contrast: (+$("phContrast").value) + extra.contrast, saturation: +$("phSat").value, gain });
@@ -5606,12 +6265,15 @@ async function buildOutput() {
       "<div class='note warn' style='margin-top:8px'>" +
       (!okMax ? "Over " + maxKB + " KB even at low quality \u2014 lower the DPI or the pixel size; file size follows the pixel count far more than the quality setting."
               : "Under the " + minKB + " KB minimum \u2014 raise the DPI or the pixel size, or save as PNG.") + "</div>") +
-    "<div class='btn-row' style='margin-top:10px;justify-content:center'><button id='btnPhDl' class='small'>Download</button></div>";
-  $("btnPhDl").addEventListener("click", () => {
-    const base = ($("phName").value.trim() || ($("phKind").value === "sign" ? "signature" : "photo")).replace(/\s+/g, "_");
-    saveBlob(new Blob([enc.bytes], { type: fmt === "png" ? "image/png" : "image/jpeg" }),
-      base + "_" + t.w + "x" + t.h + "_" + t.dpi + "dpi." + (fmt === "png" ? "png" : "jpg"));
-  });
+    "<div class='btn-row' style='margin-top:10px;justify-content:center'><button id='btnPhDl' class='small'>Download</button>" +
+    "<button id='btnPhShare' class='small ghost'>&#10548; Share</button></div>";
+  const phFile = () => {
+    const base = ($("phName").value.trim() || ({ sign: "signature", doc: "document" }[$("phKind").value] || "photo")).replace(/\s+/g, "_");
+    return [new Blob([enc.bytes], { type: fmt === "png" ? "image/png" : "image/jpeg" }),
+      base + "_" + t.w + "x" + t.h + "_" + t.dpi + "dpi." + (fmt === "png" ? "png" : "jpg")];
+  };
+  $("btnPhDl").addEventListener("click", () => saveBlob(...phFile()));
+  $("btnPhShare").addEventListener("click", () => { const f = phFile(); rememberFile(f[0], f[1]); openShare(f[0], f[1]); });
 }
 
 /* Put the subject on the new background using the model's alpha. Along the
@@ -6616,7 +7278,8 @@ function chooseImage() {
     "<button class='ghost small' id='fiFile'>From a file…</button>" +
     "<button class='small' id='fiCam'>📷 Photo with camera</button>" +
     "<button class='small' id='fiCamSign'>✍ Signature with camera</button>" +
-    (S.photo && S.photo.out ? "<button class='ghost small' id='fiPhoto'>The finished photo (Photo &amp; sign tab)</button>" : "") +
+    "<button class='small' id='fiScan'>📄 Scan a document / card</button>" +
+    (S.photo && S.photo.out ? "<button class='ghost small' id='fiPhoto'>The finished picture (Photo &amp; sign tab)</button>" : "") +
     (S.sig && S.sig.url ? "<button class='ghost small' id='fiSig'>The signature (Number &amp; stamp tab)</button>" : "") +
     "<span class='hint' style='margin:0'>then click the page where it goes</span>";
   $("fiFile").addEventListener("click", () => $("fillImgInput").click());
@@ -6624,6 +7287,12 @@ function chooseImage() {
     onShot: (f, m) => addImage(f, "photo", m === "sign" ? "camera signature" : "camera photo", m === "sign") }));
   $("fiCamSign").addEventListener("click", () => openCamera({ mode: "sign", choose: true,
     onShot: (f, m) => addImage(f, "photo", m === "sign" ? "camera signature" : "camera photo", m === "sign") }));
+  $("fiScan").addEventListener("click", () => openScanner({ multi: false, noPdf: true, doneLabel: "Use this", onDone: r => {
+    const im = r.images[0]; if (!im) return;
+    const ar = im.w / im.h;
+    $("fillImgW").value = ar > 1.4 && ar < 1.8 ? 85.6 : (ar < 1 ? 120 : 150);   // an ID card at its real size; a page wide enough to read
+    addImage(im.blob, "photo", "scanned document");
+  } }));
   if ($("fiPhoto")) $("fiPhoto").addEventListener("click", () => {
     const fmt = $("phFormat") ? $("phFormat").value : "jpeg";
     addImage(new Blob([S.photo.out.bytes], { type: fmt === "png" ? "image/png" : "image/jpeg" }), "photo", "finished photo");
@@ -6833,6 +7502,7 @@ $("btnFillApply").addEventListener("click", async () => {
     "<div class='btn-row' style='margin-top:10px'><button id='btnDlFill'>Download " + esc(fname) + "</button>" +
     "<button id='btnUseFill' class='ghost'>Use as working file</button></div>";
   $("btnDlFill").addEventListener("click", () => saveBlob(new Blob([bytes], { type: "application/pdf" }), fname));
+  shareBeside("btnDlFill", new Blob([bytes], { type: "application/pdf" }), fname);
   $("btnUseFill").addEventListener("click", async () => {
     await setWorking(bytes, fname, "filled " + items.length + " items");
     showTab("fill");
@@ -7110,7 +7780,19 @@ function deliverToInput(inputId, file) {
 }
 
 /* ---- the camera buttons ---- */
+function phFromScan(r) {
+  const im = r.images[0]; if (!im) return;
+  $("phDocFilter").value = "none";               // already cleaned in the scanner
+  if (!$("phFreeCrop").checked && $("phPreset").value !== "idcard" && $("phPreset").value !== "docA4") $("phFreeCrop").checked = true;
+  $("phH").disabled = freeCrop();
+  loadPhoto(new File([im.blob], "scanned_document_" + stamp() + ".jpg", { type: "image/jpeg" }));
+}
+$("btnPhFlatten").addEventListener("click", () => {
+  if (!S.photo.file) { $("phOut").innerHTML = "<div class='note bad'>Choose or take a picture first.</div>"; return; }
+  openScanner({ multi: false, noCamera: true, noPdf: true, doneLabel: "Use this", files: [S.photo.file], onDone: phFromScan });
+});
 $("btnPhCam").addEventListener("click", () => {
+  if ($("phKind").value === "doc") { openScanner({ multi: false, noPdf: true, doneLabel: "Use this", onDone: phFromScan }); return; }
   const sign = $("phKind").value === "sign";
   const t = targetPx();
   openCamera({ mode: sign ? "sign" : "photo", aspect: t.w / t.h, onShot: f => {
@@ -7121,6 +7803,681 @@ $("btnSigCam").addEventListener("click", () => {
   openCamera({ mode: "sign", onShot: f => { deliverToInput("sigInput", f); } });
 });
 
+
+/* ============================== SCANNER ================================== */
+/* Pages from the camera or from photos, made flat and clean the way a phone
+   scanning app does it: the edges of the sheet are found, the sheet is
+   straightened out of its slant, shadows are lifted and the paper turned
+   white. "Original" keeps the picture exactly as it was taken. Nothing
+   leaves the phone.
+   openScanner({ multi, doneLabel, title, files, onDone(result) })
+     result.images: [{ blob (JPEG), w, h }] in page order
+     result.size:   "a4" | "own"   (only asked when making a PDF)        */
+const SCAN = createScanner();
+const SCAN_SIDE = { best: 2480, std: 1754, small: 1240 };
+const SCN = { box: null, stream: null, pages: [], cur: 0, mode: "scan", filter: "auto", opts: null,
+              timer: 0, live: null, screen: "capture", corners: false, quality: "std", size: "a4", replace: -1, busy: false };
+
+function loadImageEl(blob) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("That picture could not be read."));
+    im.src = URL.createObjectURL(blob);
+  });
+}
+function drawScaled(src, w, h, maxSide) {
+  const k = Math.min(1, maxSide / Math.max(w, h));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  x.imageSmoothingQuality = "high";
+  x.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+
+/* find the sheet on a small copy; corners kept as fractions of the picture */
+function scanDetect(canvas) {
+  const s = drawScaled(canvas, canvas.width, canvas.height, 360);
+  const d = s.getContext("2d").getImageData(0, 0, s.width, s.height);
+  const r = SCAN.detect(d.data, s.width, s.height);
+  if (!r) return null;
+  const cx = r.quad.reduce((a, p) => a + p.x, 0) / 4, cy = r.quad.reduce((a, p) => a + p.y, 0) / 4;
+  return r.quad.map(p => ({ x: (p.x + (cx - p.x) * 0.012) / s.width, y: (p.y + (cy - p.y) * 0.012) / s.height }));
+}
+const WHOLE = () => [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+
+/* a page keeps its picture as a JPEG (light on memory) plus an 800-pixel copy for the screen */
+async function scanMakePage(source) {
+  let blob, el;
+  if (source instanceof HTMLCanvasElement) {
+    el = source;
+  } else {
+    el = await loadImageEl(source);
+  }
+  const W = el.naturalWidth || el.width, H = el.naturalHeight || el.height;
+  if (source instanceof HTMLCanvasElement || Math.max(W, H) > 3200 || !/jpe?g/.test(source.type || "")) {
+    const big = drawScaled(el, W, H, 3200);
+    blob = await canvasBlob(big, "image/jpeg", 0.92);
+    big.width = big.height = 1;
+  } else blob = source;
+  const prev = drawScaled(el, W, H, 800);
+  if (el.src && el.src.indexOf("blob:") === 0) URL.revokeObjectURL(el.src);
+  const found = scanDetect(prev);
+  return { blob, prev, quad: found || WHOLE(), found: !!found, filter: SCN.filter, rot: 0, out: null, key: "" };
+}
+
+/* the finished page from any copy of the picture (the screen copy or the full one) */
+function scanRender(src, page, maxSide) {
+  const W = src.width, H = src.height;
+  const q = page.quad.map(p => ({ x: p.x * W, y: p.y * H }));
+  const whole = page.quad.every((p, i) => Math.abs(p.x - WHOLE()[i].x) < 1e-6 && Math.abs(p.y - WHOLE()[i].y) < 1e-6);
+  let { w, h } = whole ? { w: W, h: H } : SCAN.flatSize(q, W, H);
+  const k = Math.min(1, maxSide / Math.max(w, h));
+  w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+  const sd = src.getContext("2d").getImageData(0, 0, W, H);
+  const px = whole && w === W && h === H ? sd.data : SCAN.warp(sd.data, W, H, q, w, h);
+  SCAN.clean(px, w, h, page.filter);
+  const c = document.createElement("canvas");
+  const turned = page.rot % 180 !== 0;
+  c.width = turned ? h : w; c.height = turned ? w : h;
+  const flat = document.createElement("canvas"); flat.width = w; flat.height = h;
+  flat.getContext("2d").putImageData(new ImageData(px, w, h), 0, 0);
+  const x = c.getContext("2d");
+  x.translate(c.width / 2, c.height / 2); x.rotate(page.rot * Math.PI / 180);
+  x.drawImage(flat, -w / 2, -h / 2);
+  flat.width = flat.height = 1;
+  return c;
+}
+function scanThumb(page) {
+  const out = scanPreview(page);
+  if (page.thumbKey !== page.key) { page.thumb = drawScaled(out, out.width, out.height, 160).toDataURL("image/jpeg", 0.6); page.thumbKey = page.key; }
+  return page.thumb;
+}
+function scanPreview(page) {
+  const key = JSON.stringify([page.quad, page.filter, page.rot]);
+  if (page.out && page.key === key) return page.out;
+  page.out = scanRender(page.prev, page, 800); page.key = key;
+  return page.out;
+}
+async function scanFinal(page, side) {
+  const el = await loadImageEl(page.blob);
+  const full = drawScaled(el, el.naturalWidth, el.naturalHeight, 3200);
+  URL.revokeObjectURL(el.src);
+  const c = scanRender(full, page, side);
+  full.width = full.height = 1;
+  const blob = await canvasBlob(c, "image/jpeg", page.filter === "bw" ? 0.78 : 0.82);
+  const r = { blob, w: c.width, h: c.height };
+  c.width = c.height = 1;
+  return r;
+}
+
+function scanName() {
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return "Scan_" + stamp() + p(d.getSeconds()) + ".pdf";
+}
+
+/* one PDF from the scanned pages: on A4, or each page its own shape */
+async function scanPdf(images, size) {
+  const doc = await PDFLib.PDFDocument.create();
+  for (const im of images) {
+    const jpg = await doc.embedJpg(new Uint8Array(await im.blob.arrayBuffer()));
+    const land = im.w > im.h, LONG = 841.89, SHORT = 595.28;
+    let PW, PH;
+    if (size === "own") { if (land) { PW = LONG; PH = LONG * im.h / im.w; } else { PH = LONG; PW = LONG * im.w / im.h; } }
+    else { PW = land ? LONG : SHORT; PH = land ? SHORT : LONG; }
+    const page = doc.addPage([PW, PH]);
+    const k = Math.min(PW / im.w, PH / im.h), dw = im.w * k, dh = im.h * k;
+    page.drawImage(jpg, { x: (PW - dw) / 2, y: (PH - dh) / 2, width: dw, height: dh });
+  }
+  return new Uint8Array(await doc.save());
+}
+
+/* ---------------------------------------------------------------- screen */
+function openScanner(opts) {
+  SCN.opts = opts; SCN.pages = []; SCN.cur = 0; SCN.replace = -1; SCN.corners = false; SCN.busy = false;
+  SCN.mode = opts.mode || "scan"; SCN.filter = SCN.mode === "original" ? "original" : "auto";
+  const box = document.createElement("div");
+  box.className = "cam scn";
+  box.innerHTML =
+    "<div class='cam-top' id='scnTop'>" +
+      "<div class='cam-modes' id='scnModes'><button data-m='scan'>Scan</button><button data-m='original'>Original photo</button></div>" +
+      "<div class='cam-tip' id='scnTip'></div>" +
+    "</div>" +
+    "<div class='cam-view' id='scnView'><video id='scnVideo' playsinline muted autoplay></video>" +
+      "<canvas id='scnGuide'></canvas><div class='scn-flash' id='scnFlash'></div>" +
+      "<canvas id='scnStage' class='scn-stage' hidden></canvas><canvas id='scnLoupe' class='scn-loupe' hidden></canvas>" +
+      "<div class='scn-busy' id='scnBusy' hidden></div></div>" +
+    /* capture */
+    "<div class='cam-bar' id='scnCapBar'>" +
+      "<button class='cam-b' id='scnClose' title='close'>✕</button>" +
+      "<button class='cam-b' id='scnGallery' title='pages from photos'>🖼</button>" +
+      "<button class='cam-shoot' id='scnShoot' title='take the page'></button>" +
+      "<button class='cam-b' id='scnTorch' title='light' hidden>⚡</button>" +
+      "<button class='scn-count' id='scnCount' hidden></button>" +
+    "</div>" +
+    /* review */
+    "<div class='scn-review' id='scnReview' hidden>" +
+      "<div class='scn-row' id='scnFilters'></div>" +
+      "<div class='scn-row' id='scnTools'></div>" +
+      "<div class='scn-strip' id='scnStrip'></div>" +
+      "<div class='scn-row scn-out' id='scnOutRow'></div>" +
+      "<div class='cam-bar' style='padding-top:8px'>" +
+        "<button class='cam-wide ghost' id='scnBack'></button>" +
+        "<button class='cam-wide' id='scnDone'></button>" +
+      "</div>" +
+    "</div>" +
+    "<input type='file' id='scnFiles' accept='image/*' multiple hidden>" +
+    "<div class='cam-err' id='scnErr' hidden></div>";
+  document.body.appendChild(box);
+  document.body.classList.add("cam-open");
+  SCN.box = box;
+
+  box.querySelector("#scnModes").addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]"); if (!b) return;
+    SCN.mode = b.dataset.m;
+    SCN.filter = SCN.mode === "original" ? "original" : (SCN.filter === "original" ? "auto" : SCN.filter);
+    scnPaintTop();
+  });
+  $("scnClose").addEventListener("click", closeScanner);
+  $("scnShoot").addEventListener("click", scnShoot);
+  $("scnGallery").addEventListener("click", () => $("scnFiles").click());
+  $("scnFiles").addEventListener("change", async e => {
+    const files = [...e.target.files]; e.target.value = "";
+    if (files.length) await scnAddFiles(files);
+  });
+  $("scnTorch").addEventListener("click", async () => {
+    SCN.torch = !SCN.torch;
+    try { await SCN.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: SCN.torch }] }); } catch (err) { SCN.torch = false; }
+    $("scnTorch").classList.toggle("on", !!SCN.torch);
+  });
+  $("scnCount").addEventListener("click", () => scnShowReview(SCN.pages.length - 1));
+  $("scnBack").addEventListener("click", scnBack);
+  $("scnDone").addEventListener("click", scnFinish);
+  scnBindStage();
+  document.addEventListener("keydown", scnKeys);
+  window.addEventListener("resize", scnResize);
+
+  scnPaintTop();
+  if (opts.files && opts.files.length) scnAddFiles(opts.files);
+  else scnShowCapture();
+}
+
+function scnKeys(e) {
+  if (!SCN.box) return;
+  if (e.key === "Escape") { if (SCN.corners) scnCornersDone(); else closeScanner(); }
+  else if ((e.key === " " || e.key === "Enter") && SCN.screen === "capture" && e.target.tagName !== "BUTTON") { e.preventDefault(); scnShoot(); }
+}
+function scnResize() { if (SCN.screen === "capture") scnDrawLive(); else scnDrawStage(); }
+
+function scnPaintTop() {
+  if (!SCN.box) return;
+  SCN.box.querySelectorAll("#scnModes button").forEach(b => b.classList.toggle("on", b.dataset.m === SCN.mode));
+  $("scnModes").style.display = SCN.screen === "capture" ? "" : "none";
+  let tip;
+  if (SCN.screen === "capture") {
+    tip = SCN.mode === "scan"
+      ? "Hold the phone flat above the page, on a darker surface, in good light. The page is outlined when it is found; its edges are trimmed and it is straightened and cleaned after you take it."
+      : "Takes the picture exactly as it is — no trimming, no cleaning.";
+  } else if (SCN.corners) {
+    tip = "Drag the four corners onto the corners of the page. A magnifier shows where your finger is.";
+  } else {
+    tip = "Page " + (SCN.cur + 1) + " of " + SCN.pages.length +
+      (SCN.pages[SCN.cur] && !SCN.pages[SCN.cur].found && SCN.pages[SCN.cur].filter !== "original" ? " — the edges were not found; tap <b>Crop</b> to set them" : "");
+  }
+  $("scnTip").innerHTML = tip;
+}
+
+/* ---- capture ---- */
+async function scnShowCapture() {
+  SCN.screen = "capture"; SCN.corners = false;
+  $("scnVideo").hidden = false; $("scnGuide").hidden = false;
+  $("scnStage").hidden = true; $("scnLoupe").hidden = true;
+  $("scnCapBar").hidden = false; $("scnReview").hidden = true;
+  scnPaintCount(); scnPaintTop();
+  if (!camLiveAllowed()) { scnNative(); return; }
+  if (SCN.stream) { scnLoop(); return; }
+  try {
+    SCN.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 2560 }, height: { ideal: 1920 } }, audio: false });
+  } catch (err) {
+    const why = err && err.name === "NotAllowedError" ? "Camera permission was refused."
+      : err && err.name === "NotFoundError" ? "No camera was found." : "The live camera could not start here.";
+    const e = $("scnErr");
+    e.hidden = false;
+    e.innerHTML = "<p>" + esc(why) + "</p><p>Use the phone’s own camera app, or choose photos already on the phone — they are straightened and cleaned the same way.</p>" +
+      "<button id='scnNat'>Open the camera app</button> <button class='ghost' id='scnPick'>Choose photos</button> <button class='ghost' id='scnErrX'>Close</button>";
+    $("scnNat").addEventListener("click", () => { e.hidden = true; scnNative(); });
+    $("scnPick").addEventListener("click", () => { e.hidden = true; $("scnFiles").click(); });
+    $("scnErrX").addEventListener("click", closeScanner);
+    return;
+  }
+  const v = $("scnVideo");
+  v.srcObject = SCN.stream;
+  try { await v.play(); } catch (e) {}
+  let caps = {};
+  try { const t = SCN.stream.getVideoTracks()[0]; caps = t.getCapabilities ? t.getCapabilities() : {}; } catch (e) {}
+  $("scnTorch").hidden = !caps.torch;
+  scnLoop();
+}
+
+/* the phone's own camera app: one picture at a time, straight back here */
+function scnNative() {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*"; inp.setAttribute("capture", "environment");
+  inp.style.display = "none";
+  document.body.appendChild(inp);
+  inp.addEventListener("change", async () => { const f = inp.files[0]; inp.remove(); if (f) await scnAddFiles([f]); });
+  inp.click();
+}
+
+function scnStopStream() {
+  clearTimeout(SCN.timer);
+  if (SCN.stream) SCN.stream.getTracks().forEach(t => t.stop());
+  SCN.stream = null; SCN.torch = false;
+}
+
+function scnVideoRect() {
+  const v = $("scnVideo"), view = $("scnView");
+  const vw = v.videoWidth || 1280, vh = v.videoHeight || 720, cw = view.clientWidth, ch = view.clientHeight;
+  const s = Math.max(cw / vw, ch / vh);
+  return { x: (cw - vw * s) / 2, y: (ch - vh * s) / 2, s, vw, vh, cw, ch };
+}
+
+/* look for the page a few times a second and outline it */
+function scnLoop() {
+  clearTimeout(SCN.timer);
+  if (!SCN.box || SCN.screen !== "capture") return;
+  const v = $("scnVideo");
+  if (SCN.mode === "scan" && v.videoWidth) {
+    const q = scanDetect(drawScaled(v, v.videoWidth, v.videoHeight, 360));
+    if (q && SCN.live) SCN.live = q.map((p, i) => ({ x: (p.x + SCN.live[i].x) / 2, y: (p.y + SCN.live[i].y) / 2 }));
+    else SCN.live = q;
+  } else SCN.live = null;
+  scnDrawLive();
+  SCN.timer = setTimeout(scnLoop, 280);
+}
+function scnDrawLive() {
+  const c = $("scnGuide"), view = $("scnView"); if (!c || !view) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = view.clientWidth * dpr; c.height = view.clientHeight * dpr;
+  c.style.width = view.clientWidth + "px"; c.style.height = view.clientHeight + "px";
+  const x = c.getContext("2d");
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!SCN.live) return;
+  const r = scnVideoRect();
+  const pts = SCN.live.map(p => ({ x: r.x + p.x * r.vw * r.s, y: r.y + p.y * r.vh * r.s }));
+  x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y)); x.closePath();
+  x.fillStyle = "rgba(78,154,160,.28)"; x.fill();
+  x.strokeStyle = "#7fe3e8"; x.lineWidth = 3; x.stroke();
+  x.fillStyle = "#fff";
+  pts.forEach(p => { x.beginPath(); x.arc(p.x, p.y, 6, 0, Math.PI * 2); x.fill(); });
+}
+
+async function scnShoot() {
+  const v = $("scnVideo");
+  if (!SCN.stream || !v.videoWidth || SCN.busy) return;
+  SCN.busy = true;
+  const full = document.createElement("canvas");
+  full.width = v.videoWidth; full.height = v.videoHeight;
+  full.getContext("2d").drawImage(v, 0, 0);
+  const fl = $("scnFlash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+  try {
+    const page = await scanMakePage(full);
+    if (SCN.mode === "original") { page.quad = WHOLE(); page.filter = "original"; }
+    scnPut(page);
+  } finally { full.width = full.height = 1; SCN.busy = false; }
+}
+
+function scnPut(page) {
+  if (SCN.replace >= 0) { SCN.pages[SCN.replace] = page; const at = SCN.replace; SCN.replace = -1; scnShowReview(at); return; }
+  SCN.pages.push(page);
+  if (!SCN.opts.multi) { scnShowReview(0); return; }
+  scnPaintCount();
+}
+
+function scnPaintCount() {
+  const b = $("scnCount"); if (!b) return;
+  const n = SCN.pages.length;
+  b.hidden = !n;
+  if (!n) return;
+  const last = SCN.pages[n - 1];
+  b.innerHTML = "<img src='" + scanThumb(last) + "' alt=''><span>" + n + "</span>";
+  b.title = n + " page" + (n === 1 ? "" : "s") + " — review";
+}
+
+async function scnAddFiles(files) {
+  scnBusy("Reading " + files.length + " picture" + (files.length === 1 ? "" : "s") + "…");
+  let added = 0;
+  for (const f of files) {
+    if (!/^image\//.test(f.type)) continue;
+    try {
+      const page = await scanMakePage(f);
+      if (SCN.mode === "original") { page.quad = WHOLE(); page.filter = "original"; }
+      if (SCN.replace >= 0) { SCN.pages[SCN.replace] = page; SCN.cur = SCN.replace; SCN.replace = -1; }
+      else { SCN.pages.push(page); SCN.cur = SCN.pages.length - 1; }
+      added++;
+      if (!SCN.opts.multi) break;
+    } catch (e) { /* skip a picture that will not open */ }
+    await frame();
+  }
+  scnBusy(null);
+  if (!SCN.pages.length) { if (!SCN.stream) closeScanner(); return; }
+  scnShowReview(added && SCN.opts.multi ? SCN.pages.length - added : SCN.cur);
+}
+
+function scnBusy(msg) {
+  const b = $("scnBusy"); if (!b) return;
+  b.hidden = !msg; if (msg) b.textContent = msg;
+}
+
+/* ---- review ---- */
+function scnShowReview(i) {
+  SCN.screen = "review"; SCN.corners = false;
+  clearTimeout(SCN.timer);
+  SCN.cur = Math.max(0, Math.min(SCN.pages.length - 1, i));
+  $("scnVideo").hidden = true; $("scnGuide").hidden = true;
+  $("scnStage").hidden = false;
+  $("scnCapBar").hidden = true; $("scnReview").hidden = false;
+  scnPaintReview();
+}
+
+function scnPaintReview() {
+  const multi = SCN.opts.multi, p = SCN.pages[SCN.cur];
+  scnPaintTop();
+  $("scnFilters").style.display = SCN.corners ? "none" : "";
+  $("scnStrip").style.display = SCN.corners || !multi ? "none" : "";
+  $("scnOutRow").style.display = SCN.corners || !multi || SCN.opts.noPdf ? "none" : "";
+  $("scnFilters").innerHTML = SCAN.FILTERS.map(f => "<button class='scn-chip" + (p && p.filter === f.id ? " on" : "") + "' data-f='" + f.id + "'>" + f.label + "</button>").join("") +
+    (multi && SCN.pages.length > 1 ? "<button class='scn-chip ghost' data-all='1'>Same for every page</button>" : "");
+  if (SCN.corners) {
+    $("scnTools").innerHTML = "<button class='scn-tool' data-t='whole'>Whole picture</button><button class='scn-tool' data-t='find'>Find the edges</button>";
+  } else {
+    $("scnTools").innerHTML =
+      "<button class='scn-tool' data-t='crop'>⌗ Crop</button><button class='scn-tool' data-t='turn'>↻ Turn</button>" +
+      (multi ? "<button class='scn-tool' data-t='left' title='move this page earlier'>◀</button><button class='scn-tool' data-t='right' title='move this page later'>▶</button>" : "") +
+      "<button class='scn-tool' data-t='retake'>↺ Retake</button>" +
+      (multi ? "<button class='scn-tool' data-t='del' title='delete this page'>🗑</button><button class='scn-tool' data-t='more'>＋ Add pages</button>" : "");
+  }
+  $("scnFilters").onclick = e => {
+    const b = e.target.closest("button"); if (!b || !p) return;
+    if (b.dataset.all) { SCN.pages.forEach(q => { q.filter = p.filter; }); scnPaintStrip(); return; }
+    p.filter = b.dataset.f; SCN.filter = p.filter; scnPaintReview();
+  };
+  $("scnTools").onclick = e => { const b = e.target.closest("button[data-t]"); if (b) scnTool(b.dataset.t); };
+  if (multi) {
+    $("scnOutRow").innerHTML =
+      "<label>Page size <select id='scnSize'><option value='a4'>A4</option><option value='own'>same shape as the scan</option></select></label>" +
+      "<label>File <select id='scnQual'><option value='best'>sharpest</option><option value='std'>standard</option><option value='small'>smallest</option></select></label>";
+    $("scnSize").value = SCN.size; $("scnQual").value = SCN.quality;
+    $("scnSize").onchange = e => { SCN.size = e.target.value; };
+    $("scnQual").onchange = e => { SCN.quality = e.target.value; };
+  }
+  $("scnBack").textContent = SCN.corners ? "Cancel" : (SCN.stream || camLiveAllowed() ? (multi ? "Back to camera" : "Retake") : "Close");
+  $("scnDone").textContent = SCN.corners ? "Done" : (SCN.opts.doneLabel || "Save") + (multi ? " (" + SCN.pages.length + ")" : "");
+  scnPaintStrip();
+  scnDrawStage();
+}
+
+function scnPaintStrip() {
+  if (!SCN.opts.multi) return;
+  const s = $("scnStrip");
+  s.innerHTML = SCN.pages.map((p, i) => "<button class='scn-th" + (i === SCN.cur ? " on" : "") + "' data-i='" + i + "'><img alt='' src='" +
+    scanThumb(p) + "'><span>" + (i + 1) + "</span></button>").join("");
+  s.onclick = e => { const b = e.target.closest("button[data-i]"); if (b) { SCN.cur = +b.dataset.i; scnPaintReview(); } };
+  const on = s.querySelector(".on"); if (on && on.scrollIntoView) on.scrollIntoView({ inline: "center", block: "nearest" });
+}
+
+function scnTool(t) {
+  const p = SCN.pages[SCN.cur]; if (!p) return;
+  if (t === "crop") { SCN.corners = true; SCN.saved = p.quad.map(q => Object.assign({}, q)); scnPaintReview(); }
+  else if (t === "ok") scnCornersDone();
+  else if (t === "whole") { p.quad = WHOLE(); scnDrawStage(); }
+  else if (t === "find") { const q = scanDetect(p.prev); if (q) { p.quad = q; p.found = true; } scnDrawStage(); }
+  else if (t === "turn") { p.rot = (p.rot + 90) % 360; scnPaintReview(); }
+  else if (t === "del") {
+    SCN.pages.splice(SCN.cur, 1);
+    if (!SCN.pages.length) { scnShowCapture(); return; }
+    SCN.cur = Math.min(SCN.cur, SCN.pages.length - 1); scnPaintReview();
+  } else if (t === "left" && SCN.cur > 0) {
+    [SCN.pages[SCN.cur - 1], SCN.pages[SCN.cur]] = [SCN.pages[SCN.cur], SCN.pages[SCN.cur - 1]]; SCN.cur--; scnPaintReview();
+  } else if (t === "right" && SCN.cur < SCN.pages.length - 1) {
+    [SCN.pages[SCN.cur + 1], SCN.pages[SCN.cur]] = [SCN.pages[SCN.cur], SCN.pages[SCN.cur + 1]]; SCN.cur++; scnPaintReview();
+  } else if (t === "retake") { SCN.replace = SCN.cur; scnRetake(); }
+  else if (t === "more") { SCN.replace = -1; scnRetake(); }
+}
+function scnRetake() {
+  if (camLiveAllowed() && !SCN.opts.noCamera) scnShowCapture();
+  else $("scnFiles").click();
+}
+function scnCornersDone() { SCN.corners = false; const p = SCN.pages[SCN.cur]; if (p) p.found = true; scnPaintReview(); }
+
+function scnBack() {
+  if (SCN.corners) { const p = SCN.pages[SCN.cur]; if (p && SCN.saved) p.quad = SCN.saved; SCN.corners = false; scnPaintReview(); return; }
+  if (SCN.opts.noCamera || !camLiveAllowed()) { closeScanner(); return; }
+  if (!SCN.opts.multi) { SCN.replace = 0; }
+  scnShowCapture();
+}
+
+/* the stage: the finished page, or the photograph with its four corners to drag */
+function scnStageGeom() {
+  const view = $("scnView"), p = SCN.pages[SCN.cur];
+  const src = SCN.corners ? p.prev : scanPreview(p);
+  const pad = SCN.corners ? 26 : 10;
+  const k = Math.min((view.clientWidth - 2 * pad) / src.width, (view.clientHeight - 2 * pad) / src.height);
+  const w = src.width * k, h = src.height * k;
+  return { src, k, x: (view.clientWidth - w) / 2, y: (view.clientHeight - h) / 2, w, h, cw: view.clientWidth, ch: view.clientHeight };
+}
+function scnDrawStage() {
+  const c = $("scnStage"); if (!c || c.hidden || !SCN.pages[SCN.cur]) return;
+  const g = scnStageGeom(), dpr = window.devicePixelRatio || 1;
+  c.width = g.cw * dpr; c.height = g.ch * dpr; c.style.width = g.cw + "px"; c.style.height = g.ch + "px";
+  const x = c.getContext("2d");
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.fillStyle = "#111"; x.fillRect(0, 0, g.cw, g.ch);
+  x.imageSmoothingQuality = "high";
+  x.drawImage(g.src, g.x, g.y, g.w, g.h);
+  if (!SCN.corners) return;
+  const p = SCN.pages[SCN.cur];
+  const pts = p.quad.map(q => ({ x: g.x + q.x * g.w, y: g.y + q.y * g.h }));
+  x.fillStyle = "rgba(0,0,0,.5)";
+  x.beginPath(); x.rect(0, 0, g.cw, g.ch);
+  pts.slice().reverse().forEach((q, i) => i ? x.lineTo(q.x, q.y) : x.moveTo(q.x, q.y)); x.closePath(); x.fill("evenodd");
+  x.beginPath(); pts.forEach((q, i) => i ? x.lineTo(q.x, q.y) : x.moveTo(q.x, q.y)); x.closePath();
+  x.strokeStyle = "#7fe3e8"; x.lineWidth = 2.5; x.stroke();
+  pts.forEach(q => {
+    x.beginPath(); x.arc(q.x, q.y, 13, 0, Math.PI * 2); x.fillStyle = "rgba(127,227,232,.35)"; x.fill();
+    x.lineWidth = 2.5; x.strokeStyle = "#fff"; x.stroke();
+  });
+}
+
+function scnBindStage() {
+  const c = $("scnStage");
+  let drag = -1;
+  const pos = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  c.addEventListener("pointerdown", e => {
+    if (!SCN.corners) return;
+    const g = scnStageGeom(), p = SCN.pages[SCN.cur], m = pos(e);
+    let best = 44, bi = -1;
+    p.quad.forEach((q, i) => { const d = Math.hypot(g.x + q.x * g.w - m.x, g.y + q.y * g.h - m.y); if (d < best) { best = d; bi = i; } });
+    if (bi < 0) return;
+    drag = bi; c.setPointerCapture(e.pointerId); e.preventDefault();
+    scnLoupe(m, g);
+  });
+  c.addEventListener("pointermove", e => {
+    if (drag < 0) return;
+    const g = scnStageGeom(), p = SCN.pages[SCN.cur], m = pos(e);
+    p.quad[drag] = { x: Math.max(0, Math.min(1, (m.x - g.x) / g.w)), y: Math.max(0, Math.min(1, (m.y - g.y) / g.h)) };
+    scnDrawStage(); scnLoupe(m, g); e.preventDefault();
+  });
+  const up = () => { if (drag < 0) return; drag = -1; $("scnLoupe").hidden = true; };
+  c.addEventListener("pointerup", up); c.addEventListener("pointercancel", up);
+}
+
+/* a magnifier above the finger, so the corner can be put exactly on the page's corner */
+function scnLoupe(m, g) {
+  const L = $("scnLoupe"), S2 = 120, Z = 2.5, dpr = window.devicePixelRatio || 1;
+  L.hidden = false;
+  L.width = S2 * dpr; L.height = S2 * dpr; L.style.width = S2 + "px"; L.style.height = S2 + "px";
+  L.style.left = Math.max(4, Math.min(g.cw - S2 - 4, m.x - S2 / 2)) + "px";
+  L.style.top = (m.y - S2 - 40 < 4 ? m.y + 40 : m.y - S2 - 40) + "px";
+  const x = L.getContext("2d");
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.fillStyle = "#111"; x.fillRect(0, 0, S2, S2);
+  const sx = (m.x - g.x) / g.k, sy = (m.y - g.y) / g.k, half = S2 / 2 / (g.k * Z);
+  x.drawImage(g.src, sx - half, sy - half, half * 2, half * 2, 0, 0, S2, S2);
+  x.strokeStyle = "#7fe3e8"; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(S2 / 2, 0); x.lineTo(S2 / 2, S2); x.moveTo(0, S2 / 2); x.lineTo(S2, S2 / 2); x.stroke();
+}
+
+/* ---- finish ---- */
+async function scnFinish() {
+  if (SCN.corners) { scnCornersDone(); return; }
+  if (!SCN.pages.length || SCN.busy) return;
+  SCN.busy = true;
+  const side = SCAN_SIDE[SCN.quality] || SCAN_SIDE.std;
+  const images = [];
+  try {
+    for (let i = 0; i < SCN.pages.length; i++) {
+      scnBusy("Preparing page " + (i + 1) + " of " + SCN.pages.length + "…");
+      await frame();
+      images.push(await scanFinal(SCN.pages[i], SCN.opts.multi ? side : Math.max(side, 2480)));
+    }
+  } catch (err) {
+    scnBusy(null); SCN.busy = false;
+    alertNote("The pages could not be prepared: " + (err && err.message ? err.message : err));
+    return;
+  }
+  const cb = SCN.opts.onDone, size = SCN.size;
+  closeScanner();
+  if (cb) await cb({ images, size });
+}
+function alertNote(msg) {
+  const e = $("scnErr"); if (!e) return;
+  e.hidden = false;
+  e.innerHTML = "<p>" + esc(msg) + "</p><button id='scnErrOk'>OK</button>";
+  $("scnErrOk").addEventListener("click", () => { e.hidden = true; });
+}
+
+function closeScanner() {
+  scnStopStream();
+  document.removeEventListener("keydown", scnKeys);
+  window.removeEventListener("resize", scnResize);
+  if (SCN.box) SCN.box.remove();
+  SCN.box = null; SCN.pages = []; SCN.live = null;
+  document.body.classList.remove("cam-open");
+}
+
+/* ============================== SHARE ==================================== */
+/* The last file the toolkit made is kept at hand, so it can go straight to
+   Gmail, Drive, WhatsApp or any other app through the phone's own share
+   sheet, without hunting for it in Downloads. Where the browser cannot hand
+   a file to another app (most computers), it is downloaded and Gmail or
+   Drive opened beside it, to attach or upload it there. */
+const LAST = { blob: null, name: "" };
+
+const MIME = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", zip: "application/zip" };
+function asFile(blob, name) {
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  const type = blob.type || MIME[ext] || "application/octet-stream";
+  return new File([blob], name, { type });
+}
+
+function rememberFile(blob, name) {
+  LAST.blob = blob; LAST.name = name;
+  let pill = $("sharePill");
+  if (!pill) {
+    pill = document.createElement("button");
+    pill.id = "sharePill"; pill.className = "share-pill";
+    pill.addEventListener("click", () => openShare(LAST.blob, LAST.name));
+    document.body.appendChild(pill);
+  }
+  pill.hidden = false;
+  document.body.classList.add("has-share");
+  pill.innerHTML = "<span aria-hidden='true'>⤴</span><span>Share</span><b>" + esc(name) + "</b>";
+  pill.title = "Share " + name + " to Gmail, Drive, WhatsApp…";
+}
+
+function canShareFile(file) {
+  try { return !!(navigator.canShare && navigator.share && navigator.canShare({ files: [file] })); } catch (e) { return false; }
+}
+
+async function shareFile(blob, name) {
+  const file = asFile(blob, name);
+  if (canShareFile(file)) {
+    try { await navigator.share({ files: [file], title: name }); return "shared"; }
+    catch (e) { return e && e.name === "AbortError" ? "cancelled" : "failed"; }
+  }
+  return "unsupported";
+}
+
+function openShare(blob, name) {
+  if (!blob) return;
+  const file = asFile(blob, name);
+  const direct = canShareFile(file);
+  const sheet = document.createElement("div");
+  sheet.className = "share-sheet";
+  sheet.innerHTML =
+    "<div class='share-card' role='dialog' aria-label='Share the file'>" +
+      "<h3>Share the last file</h3>" +
+      "<div class='hint' style='margin:0'><b>" + esc(name) + "</b> · " + human(blob.size) + "</div>" +
+      (direct
+        ? "<div class='btn-row'><button class='share-big' id='shGo'>Share… Gmail, Drive, WhatsApp</button></div>" +
+          "<p class='hint' style='margin:10px 0 0'>Pick <b>Gmail</b> to send it as an attachment, or <b>Drive</b> (“Save to Drive”) to upload it.</p>"
+        : "<p class='hint' style='margin:10px 0 0'>This browser cannot pass a file to another app. Download it, then attach it in Gmail or upload it to Drive — both open in a new tab.</p>") +
+      "<div class='btn-row'>" +
+        "<button class='ghost small' id='shDl'>Download</button>" +
+        "<button class='ghost small' id='shGmail'>Open Gmail</button>" +
+        "<button class='ghost small' id='shDrive'>Open Drive</button>" +
+        "<button class='ghost small' id='shX'>Close</button>" +
+      "</div>" +
+      "<div id='shMsg'></div>" +
+    "</div>";
+  document.body.appendChild(sheet);
+  const close = () => sheet.remove();
+  sheet.addEventListener("click", e => { if (e.target === sheet) close(); });
+  $("shX").addEventListener("click", close);
+  $("shDl").addEventListener("click", () => saveBlob(blob, name, true));
+  $("shGmail").addEventListener("click", () => {
+    if (!direct) saveBlob(blob, name, true);
+    window.open("https://mail.google.com/mail/?view=cm&fs=1&su=" + encodeURIComponent(name.replace(/\.[^.]+$/, "")), "_blank", "noopener");
+    $("shMsg").innerHTML = "<div class='note'>In Gmail, tap the paper clip and choose <b>" + esc(name) + "</b> from Downloads.</div>";
+  });
+  $("shDrive").addEventListener("click", () => {
+    if (!direct) saveBlob(blob, name, true);
+    window.open("https://drive.google.com/drive/my-drive", "_blank", "noopener");
+    $("shMsg").innerHTML = "<div class='note'>In Drive, press <b>New → File upload</b> and choose <b>" + esc(name) + "</b> from Downloads.</div>";
+  });
+  if (direct) $("shGo").addEventListener("click", async () => {
+    const r = await shareFile(blob, name);
+    if (r === "shared") close();
+    else if (r === "failed") $("shMsg").innerHTML = "<div class='note bad'>Sharing did not work here. Use Download, then attach it from Gmail or Drive.</div>";
+  });
+}
+
+/* a Share button beside a result's Download button; the file counts as the last one made */
+function shareBeside(id, blob, name) {
+  rememberFile(blob, name);
+  const b = $(id); if (!b) return;
+  const s = document.createElement("button");
+  s.className = "ghost"; s.innerHTML = "&#10548; Share";
+  s.title = "Gmail, Drive, WhatsApp…";
+  s.addEventListener("click", () => openShare(blob, name));
+  b.after(s);
+}
+
+/* Download and Share buttons for a file just made */
+function fileButtons(el, blob, name) {
+  rememberFile(blob, name);
+  const box = document.createElement("div");
+  box.className = "file-acts";
+  box.innerHTML = "<button class='small'>Download</button><button class='small ghost'>⤴ Share (Gmail, Drive…)</button>";
+  const [dl, sh] = box.querySelectorAll("button");
+  dl.addEventListener("click", () => saveBlob(blob, name));
+  sh.addEventListener("click", () => openShare(blob, name));
+  el.appendChild(box);
+  return box;
+}
 
 /* ============================== THE APP =================================== */
 /* Installs like an app and keeps working without internet: the service worker

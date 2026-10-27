@@ -10,6 +10,7 @@ every form asks for, in exactly the size, resolution and file size it wants.
 - **Private:** the PDF and the photos are worked on inside the phone or
   computer. Nothing is uploaded, ever.
 - **Works offline** once it has been opened (reading scans with OCR excepted).
+- **Share** the file just made straight to Gmail, Drive or WhatsApp with the Share button.
 
 **Open it:** https://rlm-pdf-toolkit.github.io/
 **Android app:** https://github.com/rlm-pdf-toolkit/rlm-pdf-toolkit.github.io/releases/latest/download/PDF-Toolkit.apk
@@ -22,11 +23,12 @@ every form asks for, in exactly the size, resolution and file size it wants.
 |---|---|
 | **Split by size** | Upload limit of 5 MB? It measures every page and suggests where to cut so each part fits. Cut by eye on page previews, name each part, download as a ZIP. |
 | **Compress** | Quality slider 0–100 with a recommended setting and a before/after preview of a page. Also puts 2, 4, 6, 8 or 9 pages on one sheet. |
-| **Organise pages** | Move, turn, remove, duplicate pages; insert another PDF or a blank page anywhere. Click a page to see it full screen, zoom in, and act on it there. Undo. |
+| **Scan** (top of the page) | Scan pages with the camera into a new PDF, like a scanning app: edges found, page straightened to its true shape, shadows lifted, paper white. Scanned colour, grey, black & white, or the original photo. Or make a PDF from photos on the phone. |
+| **Organise pages** | Move, turn, remove, duplicate pages; insert another PDF, a blank page, or **scanned pages from the camera** anywhere. Click a page to see it full screen, zoom in, and act on it there. Undo. |
 | **Number & stamp** | Pencil-style page numbers that skip blank pages; a line of text anywhere; a watermark; your signature, blended into the paper so it looks signed. |
 | **Auto-split** | Splits a bundle where a new document begins — printed page numbers restarting, a heading, a blank separator sheet. Reads scans with OCR. |
-| **Fill & edit** | Click anywhere to type. The text takes the **font, size and colour of the printed text beside it** and sits on its line. Ticks, crosses, boxes, lines, white-out, highlight, photos and signatures. |
-| **Photo & sign** | Passport/form photo and signature: crop, size in mm/cm/inch/pixels, DPI written into the file, KB limits met automatically, background removed (also behind hair), name and date below, a print sheet of copies. **Take it with the camera** right in the app. |
+| **Fill & edit** | Click anywhere to type. The text takes the **font, size and colour of the printed text beside it** and sits on its line. Ticks, crosses, boxes, lines, white-out, highlight, photos, signatures and **scanned cards or papers**. |
+| **Photo & sign** | Passport/form photo, signature, and **documents** (Aadhaar, PAN, certificates, any picture: straightened, cleaned, cropped to any shape). Photo and signature: crop, size in mm/cm/inch/pixels, DPI written into the file, KB limits met automatically, background removed (also behind hair), name and date below, a print sheet of copies. **Take it with the camera** right in the app. |
 
 ## 2. Put it on your phone
 

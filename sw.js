@@ -4,7 +4,7 @@
  * version, so they are served from the saved copy (fast, no data used).
  * Outside websites (the OCR engine) are left to the browser.
  * Raise VERSION with every release so phones pick up the new files. */
-const VERSION = 'pdftoolkit-v4.1';
+const VERSION = 'pdftoolkit-v4.2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'lib/pdf-lib.min.js', 'lib/pdf.min.js', 'lib/pdf.worker.min.js', 'lib/jszip.min.js', 'lib/tf.min.js',
