@@ -28,7 +28,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="rlm1711204.github.io" android:pathPrefix="/pdf-photo-toolkit" />
+                <data android:scheme="https" android:host="rlm-pdf-toolkit.github.io" />
             </intent-filter>
         </activity>
     </application>

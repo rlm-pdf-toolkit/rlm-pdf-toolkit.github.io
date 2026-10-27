@@ -11,8 +11,8 @@ every form asks for, in exactly the size, resolution and file size it wants.
   computer. Nothing is uploaded, ever.
 - **Works offline** once it has been opened (reading scans with OCR excepted).
 
-**Open it:** https://rlm1711204.github.io/pdf-photo-toolkit/
-**Android app:** https://github.com/rlm1711204/pdf-photo-toolkit/releases/latest/download/PDF-Toolkit.apk
+**Open it:** https://rlm-pdf-toolkit.github.io/
+**Android app:** https://github.com/rlm-pdf-toolkit/rlm-pdf-toolkit.github.io/releases/latest/download/PDF-Toolkit.apk
 
 ---
 
@@ -31,13 +31,13 @@ every form asks for, in exactly the size, resolution and file size it wants.
 ## 2. Put it on your phone
 
 ### Android — as an app (APK)
-1. On the phone, open **https://github.com/rlm1711204/pdf-photo-toolkit/releases/latest/download/PDF-Toolkit.apk**
+1. On the phone, open **https://github.com/rlm-pdf-toolkit/rlm-pdf-toolkit.github.io/releases/latest/download/PDF-Toolkit.apk**
 2. Tap the downloaded file → **Install**. The first time, Android asks to allow
    installs from Chrome / Files: **Settings → Allow from this source**, back, **Install**.
    Play Protect may say "unknown app": **More details → Install anyway**.
 
 ### Android or computer — from the browser
-Open **https://rlm1711204.github.io/pdf-photo-toolkit/** in Chrome or Edge and
+Open **https://rlm-pdf-toolkit.github.io/** in Chrome or Edge and
 tap **Install as an app** at the top (or ⋮ → **Add to Home screen** → **Install**).
 
 ### iPhone / iPad
@@ -52,9 +52,18 @@ not need a new APK. When a newer version is ready, the open app shows
 
 The APK itself is rebuilt by GitHub only when the `android/` folder changes.
 
-## 4. If the address shows 404
-Open **https://github.com/rlm1711204/pdf-photo-toolkit/settings/pages**, set
+## 4. Its own address, apart from Kaasu
+The toolkit has a website of its own, **https://rlm-pdf-toolkit.github.io/**, served from this
+repository (`rlm-pdf-toolkit.github.io` in the free GitHub organization
+`rlm-pdf-toolkit`). It must not go back into a folder of
+`rlm1711204.github.io`: that website is Kaasu's, and a Kaasu installed from
+Chrome opens every link on it — so the toolkit's link would open Kaasu.
+
+**If the address shows 404:** open **https://github.com/rlm-pdf-toolkit/rlm-pdf-toolkit.github.io/settings/pages**, set
 **Source → Deploy from a branch**, **Branch → main**, folder **/ (root)**, **Save**.
+
+**Full-screen Android app:** `.well-known/assetlinks.json` in this repository
+is the website vouching for the APK (see `android/README.md`).
 
 ## 5. Files
 
@@ -66,6 +75,7 @@ Open **https://github.com/rlm1711204/pdf-photo-toolkit/settings/pages**, set
 | `lib/` | The libraries it runs on, kept here so it never depends on another website. |
 | `models/` | The two background-removal models, loaded only when used. |
 | `android/` | The Android app (see `android/README.md`). |
+| `.well-known/assetlinks.json` | Lets the Android app open full screen. |
 | `tests/` | Checks for the engines inside `index.html`: `npm test` (Node 18+). |
 | `colab/` | The original Colab notebook the toolkit grew from (v1.0). |
 

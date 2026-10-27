@@ -1,6 +1,6 @@
 # Builds the PDF & Photo Toolkit Android APK on GitHub's servers and publishes
 # it on the Releases page, so it can be downloaded from:
-#   https://github.com/rlm1711204/pdf-photo-toolkit/releases/latest/download/PDF-Toolkit.apk
+#   https://github.com/rlm-pdf-toolkit/rlm-pdf-toolkit.github.io/releases/latest/download/PDF-Toolkit.apk
 # The app opens the website, so changes to the toolkit itself reach the app
 # without a new APK; this only runs when the Android part changes.
 name: Build Android APK
