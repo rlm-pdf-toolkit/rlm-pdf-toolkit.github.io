@@ -7,10 +7,32 @@
 <!--
   ===================================================================
   PDF Toolkit  ·  single-file browser tool
-  File: PDF_Photo_Toolkit_v3.6_2026-10-27.html
+  File: PDF_Photo_Toolkit_v3.7_2026-10-27.html
   Created by Ram Lakhan Meena, INSPECTOR CBIC - 2026-09-09
 
   VERSION LOG (newest first)
+
+  v3.7  2026-10-27  CAMERA - take the photo or the signature in the tool.
+        "Take it with the camera" in the Photo & sign tab, "Camera"
+        beside the signature in Number & stamp, and "Photo with
+        camera" / "Signature with camera" when placing a picture in
+        Fill & edit.
+        A live camera view opens full screen with a framing guide:
+        for a photo, the box in the shape the form asks for with a
+        head oval and an eye line; for a signature, a wide box with a
+        line to sign on. Front or back camera, a 3-second timer (on
+        by default for a photo, so a selfie is not shaken), the light
+        on phones that have one, then retake or use. A photo keeps
+        the whole frame, to be cropped in the editor; a signature is
+        cut to its box so the desk round the paper is left out, and
+        its paper is then removed as with a chosen file. The front
+        camera is shown mirror-wise like a mirror, but the picture is
+        saved the right way round.
+        Where a live view is not allowed - an older phone, the file
+        opened in a viewer that blocks the camera, or permission
+        refused - the phone's own camera app is opened instead and
+        the picture comes straight back. Nothing is uploaded either
+        way; the picture stays on the device.
 
   v3.6  2026-10-27  FILL & EDIT tab - write on the PDF itself.
         Click anywhere on a page to type. The new text takes the
@@ -509,6 +531,41 @@
   .preview img,.preview canvas{width:100%; border:1px solid var(--line); border-radius:4px; background:#fff}
   .preview figcaption{font-size:12.5px; color:var(--muted); font-family:var(--mono); margin-top:5px}
 
+  /* camera */
+  .cam-open-btn{display:block; width:100%; margin-top:8px; padding:11px 14px; font-size:15px}
+  body.cam-open{overflow:hidden}
+  .cam{position:fixed; inset:0; z-index:80; background:#000; display:flex; flex-direction:column; color:#fff}
+  .cam-top{padding:10px 14px 6px; display:flex; flex-direction:column; gap:8px; align-items:center}
+  .cam-modes{display:flex; gap:4px; background:rgba(255,255,255,.12); border-radius:20px; padding:3px}
+  .cam-modes button{background:transparent; border:none; color:#fff; border-radius:16px; padding:6px 16px; font-size:14px}
+  .cam-modes button.on{background:#fff; color:#111}
+  .cam-tip{font-size:13px; line-height:1.4; text-align:center; max-width:560px; color:#e8eef1}
+  .cam-view{position:relative; flex:1 1 auto; min-height:0; overflow:hidden}
+  .cam-view video, .cam-view img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000}
+  .cam-view img{object-fit:contain}
+  .cam-view video.mirror{transform:scaleX(-1)}
+  .cam-view img{display:none; z-index:3}
+  .cam-view canvas{position:absolute; left:0; top:0; z-index:2; pointer-events:none}
+  .cam-count{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:120px; font-weight:700;
+    color:#fff; text-shadow:0 2px 18px rgba(0,0,0,.6); z-index:4; pointer-events:none}
+  .cam-bar{display:flex; align-items:center; justify-content:space-evenly; gap:10px; padding:14px 10px calc(16px + env(safe-area-inset-bottom))}
+  .cam-bar[hidden], .cam-err[hidden]{display:none}
+  .cam-b{width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25);
+    color:#fff; font-size:20px; padding:0; display:flex; align-items:center; justify-content:center}
+  .cam-b:hover{background:rgba(255,255,255,.24)}
+  .cam-b.on{background:#ffd54a; color:#111; border-color:#ffd54a}
+  .cam-b[hidden]{display:none}
+  .cam-shoot{width:74px; height:74px; border-radius:50%; background:#fff; border:5px solid rgba(255,255,255,.45);
+    background-clip:padding-box; padding:0; box-shadow:0 0 0 2px #fff inset}
+  .cam-shoot:hover{background:#f1f1f1}
+  .cam-shoot:disabled{opacity:.5}
+  .cam-wide{flex:1 1 0; max-width:260px; padding:13px 10px; font-size:16px}
+  .cam-wide.ghost{background:transparent; color:#fff; border-color:rgba(255,255,255,.5)}
+  .cam-err{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(420px,90vw); background:#fff; color:var(--ink);
+    border-radius:8px; padding:18px; z-index:6; font-size:14.5px}
+  .cam-err p{margin:0 0 10px}
+  @media (min-width:861px){ .cam-open-btn{font-size:14px; padding:8px 12px} }
+
   /* fill & edit */
   body.wide-tab .wrap{max-width:min(1560px,98vw)}
   .fill-top{position:sticky; top:0; z-index:5; background:var(--panel); padding:6px 0 8px; border-bottom:1px solid var(--line); margin-bottom:10px}
@@ -707,7 +764,7 @@
       <h1>PDF &amp; photo toolkit</h1>
       <p>Split by size, compress, reorganise pages, number them by hand, or split automatically where a new document begins. The file never leaves this device — everything runs in the browser.</p>
     </div>
-    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-27 · v3.6</div>
+    <div class="stamp">Created by Ram Lakhan Meena, INSPECTOR CBIC<br>2026-10-27 · v3.7</div>
   </header>
 
   <!-- ============ WORKING FILE ============ -->
@@ -1099,11 +1156,12 @@
     <div id="sigBlock" style="display:none; border-left:2px solid var(--accent-soft); padding-left:14px; margin-bottom:18px">
       <div class="field">
         <button id="btnPickSig" class="ghost small">Choose signature photo</button>
+        <button id="btnSigCam" class="small">&#128247; Camera</button>
         <span class="hint" style="margin:0" id="sigName">no image chosen</span>
         <button id="btnSigAuto" class="ghost small">Reset to automatic</button>
       </div>
       <input type="file" id="sigInput" accept="image/*">
-      <p class="hint">A photo on plain paper works best. The paper is removed automatically — the frame around a phone photo, the paper tone and the shadow all go, and the pen colour is kept.</p>
+      <p class="hint">On a phone, <b>Camera</b> opens the camera with a box to sign into. A photo on plain paper works best. The paper is removed automatically — the frame around a phone photo, the paper tone and the shadow all go, and the pen colour is kept.</p>
 
       <div class="slider-row"><label for="sigCut" style="font-size:14px; color:var(--muted); min-width:150px">Background removal</label>
         <input type="range" id="sigCut" min="0" max="90" value="35"><span class="slider-val" id="sigCutVal">35</span></div>
@@ -1271,10 +1329,11 @@
         <div class="photo-card">
           <div class="photo-card-h">Crop — drag the box, pull a corner</div>
           <div id="phDrop" class="drop" style="padding:16px 12px">
-            <strong style="font-size:14px">Drop a photo here, or click to browse</strong>
+            <strong style="font-size:14px">Drop a photo here, or click to choose one</strong>
             <span id="phName2">no image chosen</span>
           </div>
           <input type="file" id="phInput" accept="image/*">
+          <button id="btnPhCam" class="cam-open-btn">&#128247; Take it with the camera</button>
           <div style="text-align:center;margin-top:10px">
             <canvas id="phStage" style="border:1px solid var(--line);border-radius:3px;touch-action:none;cursor:move;background:#fff;max-width:100%"></canvas>
           </div>
@@ -1484,7 +1543,7 @@
 
   <footer>
     Runs offline once loaded (OCR excepted). Built with pdf-lib, pdf.js, JSZip and tesseract.js.
-    <span>PDF_Photo_Toolkit_v3.6_2026-10-27</span>
+    <span>PDF_Photo_Toolkit_v3.7_2026-10-27</span>
   </footer>
 </div>
 
@@ -6509,10 +6568,16 @@ function listItems() {
 function chooseImage() {
   $("fillImgPick").innerHTML =
     "<button class='ghost small' id='fiFile'>From a file…</button>" +
+    "<button class='small' id='fiCam'>📷 Photo with camera</button>" +
+    "<button class='small' id='fiCamSign'>✍ Signature with camera</button>" +
     (S.photo && S.photo.out ? "<button class='ghost small' id='fiPhoto'>The finished photo (Photo &amp; sign tab)</button>" : "") +
     (S.sig && S.sig.url ? "<button class='ghost small' id='fiSig'>The signature (Number &amp; stamp tab)</button>" : "") +
     "<span class='hint' style='margin:0'>then click the page where it goes</span>";
   $("fiFile").addEventListener("click", () => $("fillImgInput").click());
+  $("fiCam").addEventListener("click", () => openCamera({ mode: "photo", aspect: 35 / 45, choose: true,
+    onShot: (f, m) => addImage(f, "photo", m === "sign" ? "camera signature" : "camera photo", m === "sign") }));
+  $("fiCamSign").addEventListener("click", () => openCamera({ mode: "sign", choose: true,
+    onShot: (f, m) => addImage(f, "photo", m === "sign" ? "camera signature" : "camera photo", m === "sign") }));
   if ($("fiPhoto")) $("fiPhoto").addEventListener("click", () => {
     const fmt = $("phFormat") ? $("phFormat").value : "jpeg";
     addImage(new Blob([S.photo.out.bytes], { type: fmt === "png" ? "image/png" : "image/jpeg" }), "photo", "finished photo");
@@ -6527,7 +6592,7 @@ $("fillImgInput").addEventListener("change", e => {
   e.target.value = "";
 });
 
-async function addImage(blob, kind, label) {
+async function addImage(blob, kind, label, autoKey) {
   const url = URL.createObjectURL(blob);
   const el = new Image();
   el.onload = async () => {
@@ -6560,6 +6625,8 @@ async function addImage(blob, kind, label) {
         if (nid) { FILL.pending = nid; $("fillImgW").value = 40; }
       } else FILL.pending = id;
     });
+    /* a signature taken with the camera has its paper removed straight away */
+    if (autoKey && $("fiKey")) { $("fiKey").checked = true; $("fiKey").dispatchEvent(new Event("change")); }
     FILL.tool = "image";
     document.querySelectorAll("#fillTools button").forEach(b => b.classList.toggle("on", b.dataset.tool === "image"));
     $("fillHint").textContent = "click the page where the picture’s centre should go";
@@ -6729,6 +6796,283 @@ $("btnFillApply").addEventListener("click", async () => {
 $("btnFillClear").addEventListener("click", () => {
   if (!FILL.items.length) return;
   pushUndo(); FILL.items = []; FILL.sel = null; drawItems(); showProps(); listItems();
+});
+
+/* =============================== CAMERA ================================== */
+/* A live camera view with a framing guide. Where the browser does not allow a
+   live view (an old phone, a file opened in a viewer that blocks it, or the
+   permission refused), the phone's own camera app is opened instead. Either
+   way the picture goes straight to this page; nothing is uploaded. */
+
+const CAM = { stream: null, facing: "user", mode: "photo", timer: false, torch: false, onShot: null, aspect: 35 / 45, signAspect: 2.6 };
+
+function camLiveAllowed() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext !== false);
+}
+
+/* the phone's own camera app, through a file input that asks for the camera */
+function camNative(mode, onShot) {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "image/*";
+  inp.setAttribute("capture", mode === "photo" && CAM.facing === "user" ? "user" : "environment");
+  inp.style.display = "none";
+  document.body.appendChild(inp);
+  inp.addEventListener("change", () => {
+    const f = inp.files[0];
+    inp.remove();
+    if (f) onShot(f, mode);
+  });
+  inp.click();
+}
+
+/* opts: {mode: "photo"|"sign", aspect, onShot(file, mode), choose: true to offer both modes} */
+function openCamera(opts) {
+  CAM.mode = opts.mode || "photo";
+  CAM.aspect = opts.aspect || CAM.aspect;
+  CAM.onShot = opts.onShot;
+  CAM.choose = !!opts.choose;
+  CAM.facing = CAM.mode === "photo" ? "user" : "environment";
+  CAM.timer = CAM.mode === "photo";
+  if (!camLiveAllowed()) { camNative(CAM.mode, CAM.onShot); return; }
+
+  const box = document.createElement("div");
+  box.className = "cam";
+  box.innerHTML =
+    "<div class='cam-top'>" +
+      (CAM.choose ? "<div class='cam-modes'><button data-m='photo'>Photo</button><button data-m='sign'>Signature</button></div>" : "") +
+      "<div class='cam-tip' id='camTip'></div>" +
+    "</div>" +
+    "<div class='cam-view' id='camView'><video id='camVideo' playsinline muted autoplay></video>" +
+      "<canvas id='camGuide'></canvas><img id='camStill' alt=''><div class='cam-count' id='camCount'></div></div>" +
+    "<div class='cam-bar' id='camBar'>" +
+      "<button class='cam-b' id='camClose' title='close'>✕</button>" +
+      "<button class='cam-b' id='camFlip' title='front / back camera'>⇄</button>" +
+      "<button class='cam-shoot' id='camShoot' title='take the picture'></button>" +
+      "<button class='cam-b' id='camTimer' title='3-second timer'>⏱</button>" +
+      "<button class='cam-b' id='camTorch' title='light' hidden>⚡</button>" +
+    "</div>" +
+    "<div class='cam-bar' id='camReview' hidden>" +
+      "<button class='cam-wide ghost' id='camRetake'>Retake</button>" +
+      "<button class='cam-wide' id='camUse'>Use this picture</button>" +
+    "</div>" +
+    "<div class='cam-err' id='camErr' hidden></div>";
+  document.body.appendChild(box);
+  document.body.classList.add("cam-open");
+  CAM.box = box;
+
+  $("camClose").addEventListener("click", closeCamera);
+  $("camFlip").addEventListener("click", () => { CAM.facing = CAM.facing === "user" ? "environment" : "user"; startStream(); });
+  $("camTimer").addEventListener("click", () => { CAM.timer = !CAM.timer; paintBar(); });
+  $("camTorch").addEventListener("click", async () => {
+    CAM.torch = !CAM.torch;
+    try { await CAM.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: CAM.torch }] }); } catch (e) { CAM.torch = false; }
+    paintBar();
+  });
+  $("camShoot").addEventListener("click", shoot);
+  $("camRetake").addEventListener("click", () => { $("camStill").removeAttribute("src"); $("camStill").style.display = "none";
+    $("camReview").hidden = true; $("camBar").hidden = false; });
+  $("camUse").addEventListener("click", () => {
+    const f = CAM.shot; const m = CAM.mode; const cb = CAM.onShot;
+    closeCamera();
+    if (f && cb) cb(f, m);
+  });
+  if (CAM.choose) box.querySelector(".cam-modes").addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]"); if (!b) return;
+    CAM.mode = b.dataset.m;
+    CAM.facing = CAM.mode === "photo" ? "user" : "environment";
+    CAM.timer = CAM.mode === "photo";
+    startStream();
+  });
+  document.addEventListener("keydown", camKeys);
+  window.addEventListener("resize", drawGuide);
+  startStream();
+}
+
+function camKeys(e) {
+  if (!CAM.box) return;
+  if (e.key === "Escape") closeCamera();
+  else if ((e.key === " " || e.key === "Enter") && !$("camBar").hidden) { e.preventDefault(); shoot(); }
+}
+
+function paintBar() {
+  if (!CAM.box) return;
+  $("camTimer").classList.toggle("on", CAM.timer);
+  $("camTorch").classList.toggle("on", CAM.torch);
+  if (CAM.choose) CAM.box.querySelectorAll(".cam-modes button").forEach(b => b.classList.toggle("on", b.dataset.m === CAM.mode));
+  $("camTip").textContent = CAM.mode === "photo"
+    ? "Face the camera in good, even light against a plain wall. Eyes on the line, head inside the oval. You can crop afterwards."
+    : "Sign on plain white paper with a dark pen. Hold the phone flat above it, in good light, and fill the box with the signature \u2014 turn the phone sideways for a long one.";
+  $("camVideo").classList.toggle("mirror", CAM.facing === "user");
+}
+
+async function startStream() {
+  stopStream();
+  paintBar();
+  $("camErr").hidden = true;
+  const want = { facingMode: { ideal: CAM.facing }, width: { ideal: 1920 }, height: { ideal: 1440 } };
+  try {
+    CAM.stream = await navigator.mediaDevices.getUserMedia({ video: want, audio: false });
+  } catch (err) {
+    showCamError(err);
+    return;
+  }
+  const v = $("camVideo");
+  v.srcObject = CAM.stream;
+  try { await v.play(); } catch (e) {}
+  const track = CAM.stream.getVideoTracks()[0];
+  let caps = {};
+  try { caps = track.getCapabilities ? track.getCapabilities() : {}; } catch (e) {}
+  $("camTorch").hidden = !caps.torch;
+  /* the real facing of the camera we were given decides the mirroring */
+  const st = track.getSettings ? track.getSettings() : {};
+  if (st.facingMode) CAM.facing = st.facingMode === "environment" ? "environment" : "user";
+  paintBar();
+  if (v.readyState >= 1) drawGuide(); else v.addEventListener("loadedmetadata", drawGuide, { once: true });
+}
+
+function showCamError(err) {
+  const why = err && err.name === "NotAllowedError" ? "Camera permission was refused."
+    : err && err.name === "NotFoundError" ? "No camera was found."
+    : "The live camera could not start here" + (err && err.message ? " (" + err.message + ")" : "") + ".";
+  const e = $("camErr");
+  e.hidden = false;
+  e.innerHTML = "<p>" + esc(why) + "</p><p>The phone’s own camera app can be used instead — the picture comes straight back here.</p>" +
+    "<button id='camNativeBtn'>Open the camera app</button> <button class='ghost' id='camErrClose'>Close</button>";
+  $("camNativeBtn").addEventListener("click", () => { const m = CAM.mode, cb = CAM.onShot; closeCamera(); camNative(m, cb); });
+  $("camErrClose").addEventListener("click", closeCamera);
+}
+
+function stopStream() {
+  if (CAM.stream) CAM.stream.getTracks().forEach(t => t.stop());
+  CAM.stream = null; CAM.torch = false;
+}
+
+function closeCamera() {
+  stopStream();
+  clearTimeout(CAM.countT);
+  document.removeEventListener("keydown", camKeys);
+  window.removeEventListener("resize", drawGuide);
+  if (CAM.box) CAM.box.remove();
+  CAM.box = null;
+  document.body.classList.remove("cam-open");
+}
+
+/* The live picture fills the screen like the phone's own camera app, so part
+   of it may be off the edges; this is the part that can be seen, in video pixels. */
+function videoRect() {
+  const v = $("camVideo"), view = $("camView");
+  const vw = v.videoWidth || 1280, vh = v.videoHeight || 720;
+  const cw = view.clientWidth, ch = view.clientHeight;
+  const s = Math.max(cw / vw, ch / vh);
+  const x = (cw - vw * s) / 2, y = (ch - vh * s) / 2;
+  return { x, y, w: vw * s, h: vh * s, s, vw, vh, cw, ch,
+           vis: { x: Math.max(0, -x / s), y: Math.max(0, -y / s), w: Math.min(vw, cw / s), h: Math.min(vh, ch / s) } };
+}
+
+/* the guide box, in video pixels, inside the part that can be seen */
+function guideBox() {
+  const r = videoRect(), V = r.vis;
+  const ar = CAM.mode === "photo" ? CAM.aspect : CAM.signAspect;
+  let w = V.w * (CAM.mode === "photo" ? 0.78 : 0.9), h = w / ar;
+  const maxH = V.h * (CAM.mode === "photo" ? 0.8 : 0.6);
+  if (h > maxH) { h = maxH; w = h * ar; }
+  return { x: V.x + (V.w - w) / 2, y: V.y + (V.h - h) / 2, w, h };
+}
+
+function drawGuide() {
+  const c = $("camGuide"), view = $("camView"); if (!c || !view) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = view.clientWidth * dpr; c.height = view.clientHeight * dpr;
+  c.style.width = view.clientWidth + "px"; c.style.height = view.clientHeight + "px";
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  const r = videoRect(), g = guideBox();
+  const X = r.x + g.x * r.s, Y = r.y + g.y * r.s, W = g.w * r.s, H = g.h * r.s;
+  /* dim everything outside the box */
+  ctx.fillStyle = "rgba(0,0,0,.45)";
+  ctx.beginPath(); ctx.rect(0, 0, r.cw, r.ch); ctx.rect(X, Y, W, H); ctx.fill("evenodd");
+  ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.lineWidth = 2;
+  ctx.strokeRect(X, Y, W, H);
+  ctx.setLineDash([7, 6]); ctx.strokeStyle = "rgba(120,235,240,.95)"; ctx.lineWidth = 1.5;
+  if (CAM.mode === "photo") {
+    ctx.beginPath();
+    ctx.ellipse(X + W / 2, Y + H * 0.40, W * 0.24, H * 0.32, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X + W * 0.12, Y + H * 0.34); ctx.lineTo(X + W * 0.88, Y + H * 0.34); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(X + W * 0.06, Y + H * 0.72); ctx.lineTo(X + W * 0.94, Y + H * 0.72); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+function shoot() {
+  if (!CAM.stream) return;
+  if (CAM.timer) {
+    let n = 3;
+    const cnt = $("camCount");
+    $("camShoot").disabled = true;
+    const tick = () => {
+      if (!CAM.box) return;
+      if (n === 0) { cnt.textContent = ""; $("camShoot").disabled = false; capture(); return; }
+      cnt.textContent = n; n--;
+      CAM.countT = setTimeout(tick, 1000);
+    };
+    tick();
+  } else capture();
+}
+
+function capture() {
+  const v = $("camVideo");
+  if (!v.videoWidth) return;
+  const full = document.createElement("canvas");
+  full.width = v.videoWidth; full.height = v.videoHeight;
+  full.getContext("2d").drawImage(v, 0, 0);
+  /* a photo keeps the whole frame, to be cropped in the editor; a signature is
+     cut to the box, with a margin, so the desk round the paper is left out */
+  let out = full;
+  if (CAM.mode === "sign") {
+    const g = guideBox();
+    const m = Math.round(Math.min(g.w, g.h) * 0.08);
+    const x = Math.max(0, Math.round(g.x - m)), y = Math.max(0, Math.round(g.y - m));
+    const w = Math.min(full.width - x, Math.round(g.w + 2 * m)), h = Math.min(full.height - y, Math.round(g.h + 2 * m));
+    out = document.createElement("canvas"); out.width = w; out.height = h;
+    out.getContext("2d").drawImage(full, x, y, w, h, 0, 0, w, h);
+  }
+  out.toBlob(b => {
+    if (!b || !CAM.box) return;
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+    CAM.shot = new File([b], (CAM.mode === "photo" ? "camera_photo_" : "camera_signature_") + stamp + ".jpg", { type: "image/jpeg" });
+    const still = $("camStill");
+    still.src = URL.createObjectURL(b);
+    still.style.display = "block";
+    $("camBar").hidden = true; $("camReview").hidden = false;
+  }, "image/jpeg", 0.93);
+}
+
+/* hand a camera picture to a page's own file input, exactly as if it had been chosen */
+function deliverToInput(inputId, file) {
+  const inp = $(inputId);
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    inp.files = dt.files;
+    inp.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ---- the camera buttons ---- */
+$("btnPhCam").addEventListener("click", () => {
+  const sign = $("phKind").value === "sign";
+  const t = targetPx();
+  openCamera({ mode: sign ? "sign" : "photo", aspect: t.w / t.h, onShot: f => {
+    if (!deliverToInput("phInput", f)) loadPhoto(f);
+  } });
+});
+$("btnSigCam").addEventListener("click", () => {
+  openCamera({ mode: "sign", onShot: f => { deliverToInput("sigInput", f); } });
 });
 
 </script>
